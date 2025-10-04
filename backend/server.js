@@ -22,7 +22,7 @@ app.use(cors({
   credentials: true
 }));
 
-// CORS - MUST come before routes
+// CORS - Use this in production
 /*
 app.use(cors({
   origin: [
