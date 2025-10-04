@@ -11,161 +11,188 @@ const AIApplicantSelector = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'overallScore', direction: 'desc' });
+  const [loading, setLoading] = useState(true);
+  const [apiConnected, setApiConnected] = useState(false);
 
-  // Sample applicant data with comprehensive scoring
+  // Sample applicant data as fallback
   const sampleApplicants = [
     {
       id: 1,
-      name: "Adewale Johnson",
+      full_name: "Adewale Johnson",
       email: "adewale.j@email.com",
       skills: ["Python", "Machine Learning", "Data Analysis", "TensorFlow"],
-      experience: "3 years",
+      experience_years: 3,
       education: "BSc Computer Science",
-      overallScore: 94,
-      skillsScore: 96,
-      experienceScore: 92,
-      educationScore: 94,
-      assessmentScore: 94,
+      overall_score: 94,
+      skills_score: 96,
+      experience_score: 92,
+      education_score: 94,
+      assessment_score: 94,
       status: "Highly Recommended",
-      resumeQuality: 95,
-      coverLetterScore: 92,
-      motivation: "High",
+      resume_quality_score: 95,
+      cover_letter_score: 92,
+      motivation_level: "High",
       availability: "Immediate"
     },
     {
       id: 2,
-      name: "Chioma Okonkwo",
+      full_name: "Chioma Okonkwo",
       email: "chioma.o@email.com",
       skills: ["React", "Node.js", "UI/UX Design", "TypeScript"],
-      experience: "4 years",
+      experience_years: 4,
       education: "MSc Information Technology",
-      overallScore: 92,
-      skillsScore: 94,
-      experienceScore: 95,
-      educationScore: 96,
-      assessmentScore: 85,
+      overall_score: 92,
+      skills_score: 94,
+      experience_score: 95,
+      education_score: 96,
+      assessment_score: 85,
       status: "Highly Recommended",
-      resumeQuality: 90,
-      coverLetterScore: 94,
-      motivation: "High",
+      resume_quality_score: 90,
+      cover_letter_score: 94,
+      motivation_level: "High",
       availability: "2 weeks"
     },
     {
       id: 3,
-      name: "Ibrahim Musa",
+      full_name: "Ibrahim Musa",
       email: "ibrahim.m@email.com",
       skills: ["Java", "Spring Boot", "Microservices", "Docker"],
-      experience: "2 years",
+      experience_years: 2,
       education: "BSc Software Engineering",
-      overallScore: 88,
-      skillsScore: 90,
-      experienceScore: 82,
-      educationScore: 88,
-      assessmentScore: 92,
+      overall_score: 88,
+      skills_score: 90,
+      experience_score: 82,
+      education_score: 88,
+      assessment_score: 92,
       status: "Recommended",
-      resumeQuality: 87,
-      coverLetterScore: 86,
-      motivation: "High",
+      resume_quality_score: 87,
+      cover_letter_score: 86,
+      motivation_level: "High",
       availability: "Immediate"
     },
     {
       id: 4,
-      name: "Blessing Nwosu",
+      full_name: "Blessing Nwosu",
       email: "blessing.n@email.com",
       skills: ["Data Science", "SQL", "Power BI", "Statistics"],
-      experience: "2.5 years",
+      experience_years: 2.5,
       education: "BSc Mathematics",
-      overallScore: 86,
-      skillsScore: 88,
-      experienceScore: 80,
-      educationScore: 85,
-      assessmentScore: 90,
+      overall_score: 86,
+      skills_score: 88,
+      experience_score: 80,
+      education_score: 85,
+      assessment_score: 90,
       status: "Recommended",
-      resumeQuality: 84,
-      coverLetterScore: 88,
-      motivation: "Medium-High",
+      resume_quality_score: 84,
+      cover_letter_score: 88,
+      motivation_level: "Medium-High",
       availability: "1 month"
     },
     {
       id: 5,
-      name: "Yusuf Abdullahi",
+      full_name: "Yusuf Abdullahi",
       email: "yusuf.a@email.com",
       skills: ["Cloud Computing", "AWS", "DevOps", "CI/CD"],
-      experience: "5 years",
+      experience_years: 5,
       education: "BSc Computer Engineering",
-      overallScore: 90,
-      skillsScore: 92,
-      experienceScore: 96,
-      educationScore: 82,
-      assessmentScore: 88,
+      overall_score: 90,
+      skills_score: 92,
+      experience_score: 96,
+      education_score: 82,
+      assessment_score: 88,
       status: "Highly Recommended",
-      resumeQuality: 91,
-      coverLetterScore: 87,
-      motivation: "High",
+      resume_quality_score: 91,
+      cover_letter_score: 87,
+      motivation_level: "High",
       availability: "Immediate"
     },
     {
       id: 6,
-      name: "Ngozi Eze",
+      full_name: "Ngozi Eze",
       email: "ngozi.e@email.com",
       skills: ["Mobile Dev", "Flutter", "Dart", "Firebase"],
-      experience: "1.5 years",
+      experience_years: 1.5,
       education: "HND Computer Science",
-      overallScore: 82,
-      skillsScore: 85,
-      experienceScore: 75,
-      educationScore: 80,
-      assessmentScore: 88,
+      overall_score: 82,
+      skills_score: 85,
+      experience_score: 75,
+      education_score: 80,
+      assessment_score: 88,
       status: "Consider",
-      resumeQuality: 80,
-      coverLetterScore: 84,
-      motivation: "Medium",
+      resume_quality_score: 80,
+      cover_letter_score: 84,
+      motivation_level: "Medium",
       availability: "Immediate"
     },
     {
       id: 7,
-      name: "Oluwaseun Adebayo",
+      full_name: "Oluwaseun Adebayo",
       email: "seun.a@email.com",
       skills: ["Blockchain", "Solidity", "Web3", "Smart Contracts"],
-      experience: "2 years",
+      experience_years: 2,
       education: "BSc Economics",
-      overallScore: 85,
-      skillsScore: 87,
-      experienceScore: 82,
-      educationScore: 78,
-      assessmentScore: 92,
+      overall_score: 85,
+      skills_score: 87,
+      experience_score: 82,
+      education_score: 78,
+      assessment_score: 92,
       status: "Recommended",
-      resumeQuality: 83,
-      coverLetterScore: 89,
-      motivation: "High",
+      resume_quality_score: 83,
+      cover_letter_score: 89,
+      motivation_level: "High",
       availability: "2 weeks"
     },
     {
       id: 8,
-      name: "Fatima Bello",
+      full_name: "Fatima Bello",
       email: "fatima.b@email.com",
       skills: ["Cybersecurity", "Ethical Hacking", "Network Security"],
-      experience: "3 years",
+      experience_years: 3,
       education: "MSc Cybersecurity",
-      overallScore: 89,
-      skillsScore: 91,
-      experienceScore: 88,
-      educationScore: 95,
-      assessmentScore: 84,
+      overall_score: 89,
+      skills_score: 91,
+      experience_score: 88,
+      education_score: 95,
+      assessment_score: 84,
       status: "Recommended",
-      resumeQuality: 88,
-      coverLetterScore: 85,
-      motivation: "High",
+      resume_quality_score: 88,
+      cover_letter_score: 85,
+      motivation_level: "High",
       availability: "1 month"
     }
   ];
 
+  // Normalize API data to match expected format
+  const normalizeApplicant = (applicant) => {
+    return {
+      ...applicant,
+      // Handle field name differences
+      overallScore: applicant.overall_score || applicant.overallScore || 0,
+      skillsScore: applicant.skills_score || applicant.skillsScore || 0,
+      experienceScore: applicant.experience_score || applicant.experienceScore || 0,
+      educationScore: applicant.education_score || applicant.educationScore || 0,
+      assessmentScore: applicant.assessment_score || applicant.assessmentScore || 0,
+      resumeQuality: applicant.resume_quality_score || applicant.resumeQuality || 0,
+      coverLetterScore: applicant.cover_letter_score || applicant.coverLetterScore || 0,
+      // Handle skills - might be array or comma-separated string
+      skills: Array.isArray(applicant.skills) 
+        ? applicant.skills 
+        : (applicant.skills ? applicant.skills.split(',').map(s => s.trim()) : []),
+      // Handle other fields
+      name: applicant.full_name || applicant.name || 'Unknown',
+      experience: applicant.experience_years 
+        ? `${applicant.experience_years} years` 
+        : (applicant.experience || 'N/A'),
+      motivation: applicant.motivation_level || applicant.motivation || 'Medium'
+    };
+  };
+
   useEffect(() => {
-    // Fetch from API or use sample data
     const fetchApplicants = async () => {
+      setLoading(true);
       try {
         const API_URL = import.meta.env.VITE_API_URL || 'https://ai-applicant-selector-production.up.railway.app/api';
-        console.log('Fetching from:', `${API_URL}/applicants`);
+        console.log('🔍 Fetching from:', `${API_URL}/applicants`);
         
         const response = await fetch(`${API_URL}/applicants`, {
           method: 'GET',
@@ -174,32 +201,40 @@ const AIApplicantSelector = () => {
           },
         });
         
-        console.log('Response status:', response.status);
+        console.log('📡 Response status:', response.status);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON');
+        }
+        
         const result = await response.json();
-        console.log('API Response:', result);
+        console.log('📊 API Response:', result);
         
         if (result.success && result.data && result.data.length > 0) {
-          // Use API data if available
           console.log('✅ Using API data:', result.data.length, 'applicants');
-          setApplicants(result.data);
-          setFilteredApplicants(result.data);
+          const normalized = result.data.map(normalizeApplicant);
+          setApplicants(normalized);
+          setFilteredApplicants(normalized);
+          setApiConnected(true);
         } else {
-          // Fallback to sample data
           console.log('⚠️ API returned no data, using sample data');
           setApplicants(sampleApplicants);
           setFilteredApplicants(sampleApplicants);
+          setApiConnected(false);
         }
       } catch (error) {
         console.error('❌ API Error:', error);
-        console.log('Using sample data as fallback');
-        // Fallback to sample data
+        console.log('📦 Using sample data as fallback');
         setApplicants(sampleApplicants);
         setFilteredApplicants(sampleApplicants);
+        setApiConnected(false);
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -207,20 +242,28 @@ const AIApplicantSelector = () => {
   }, []);
 
   useEffect(() => {
-    let filtered = applicants.filter(app =>
-      app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    let filtered = applicants.filter(app => {
+      const name = app.name || app.full_name || '';
+      const email = app.email || '';
+      const skills = app.skills || [];
+      
+      const matchesSearch = 
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        skills.some(skill => 
+          skill.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      
+      return matchesSearch;
+    });
 
     if (selectedFilter !== 'all') {
       filtered = filtered.filter(app => app.status === selectedFilter);
     }
 
-    // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+      const aValue = a[sortConfig.key] || a.overallScore || 0;
+      const bValue = b[sortConfig.key] || b.overallScore || 0;
       
       if (sortConfig.direction === 'asc') {
         return aValue > bValue ? 1 : -1;
@@ -280,8 +323,22 @@ const AIApplicantSelector = () => {
     total: applicants.length,
     highlyRecommended: applicants.filter(a => a.status === 'Highly Recommended').length,
     recommended: applicants.filter(a => a.status === 'Recommended').length,
-    avgScore: Math.round(applicants.reduce((sum, a) => sum + a.overallScore, 0) / applicants.length)
+    avgScore: applicants.length > 0 
+      ? Math.round(applicants.reduce((sum, a) => sum + (a.overallScore || a.overall_score || 0), 0) / applicants.length)
+      : 0
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="w-16 h-16 text-blue-600 animate-pulse mx-auto mb-4" />
+          <p className="text-xl font-semibold text-gray-700">Loading AI Applicant Selector...</p>
+          <p className="text-sm text-gray-500 mt-2">Connecting to intelligent recruitment platform</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -303,6 +360,12 @@ const AIApplicantSelector = () => {
                 <p className="text-xs text-gray-500">Powered by</p>
                 <p className="text-sm font-semibold text-blue-600">Advanced ML Algorithms</p>
               </div>
+              {apiConnected && (
+                <div className="flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-green-800">API Connected</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -423,13 +486,13 @@ const AIApplicantSelector = () => {
                         {idx + 1}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{app.name}</p>
+                        <p className="font-semibold text-gray-900">{app.name || app.full_name}</p>
                         <p className="text-sm text-gray-600">{app.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-600">{app.overallScore}%</p>
+                        <p className="text-2xl font-bold text-blue-600">{app.overallScore || app.overall_score}%</p>
                         <p className="text-xs text-gray-600">Overall Score</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(app.status)}`}>
@@ -515,26 +578,26 @@ const AIApplicantSelector = () => {
                       <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-semibold text-gray-900">{app.name}</p>
+                            <p className="font-semibold text-gray-900">{app.name || app.full_name}</p>
                             <p className="text-sm text-gray-600">{app.email}</p>
                             <p className="text-xs text-gray-500 mt-1">{app.education}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <span className={`text-2xl font-bold ${getScoreColor(app.overallScore)}`}>
-                              {app.overallScore}%
+                            <span className={`text-2xl font-bold ${getScoreColor(app.overallScore || app.overall_score)}`}>
+                              {app.overallScore || app.overall_score}%
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">
-                            {app.skills.slice(0, 2).map((skill, idx) => (
+                            {app.skills && app.skills.slice(0, 2).map((skill, idx) => (
                               <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                                 {skill}
                               </span>
                             ))}
-                            {app.skills.length > 2 && (
+                            {app.skills && app.skills.length > 2 && (
                               <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
                                 +{app.skills.length - 2}
                               </span>
@@ -673,10 +736,10 @@ const AIApplicantSelector = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Score Distribution</h3>
                 <div className="space-y-3">
                   {[
-                    { range: '90-100', count: applicants.filter(a => a.overallScore >= 90).length, color: 'bg-green-500' },
-                    { range: '80-89', count: applicants.filter(a => a.overallScore >= 80 && a.overallScore < 90).length, color: 'bg-blue-500' },
-                    { range: '70-79', count: applicants.filter(a => a.overallScore >= 70 && a.overallScore < 80).length, color: 'bg-yellow-500' },
-                    { range: 'Below 70', count: applicants.filter(a => a.overallScore < 70).length, color: 'bg-gray-500' }
+                    { range: '90-100', count: applicants.filter(a => (a.overallScore || a.overall_score) >= 90).length, color: 'bg-green-500' },
+                    { range: '80-89', count: applicants.filter(a => (a.overallScore || a.overall_score) >= 80 && (a.overallScore || a.overall_score) < 90).length, color: 'bg-blue-500' },
+                    { range: '70-79', count: applicants.filter(a => (a.overallScore || a.overall_score) >= 70 && (a.overallScore || a.overall_score) < 80).length, color: 'bg-yellow-500' },
+                    { range: 'Below 70', count: applicants.filter(a => (a.overallScore || a.overall_score) < 70).length, color: 'bg-gray-500' }
                   ].map(item => (
                     <div key={item.range}>
                       <div className="flex items-center justify-between mb-1">
@@ -686,7 +749,7 @@ const AIApplicantSelector = () => {
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className={`${item.color} h-2 rounded-full`}
-                          style={{ width: `${(item.count / applicants.length) * 100}%` }}
+                          style={{ width: `${applicants.length > 0 ? (item.count / applicants.length) * 100 : 0}%` }}
                         />
                       </div>
                     </div>
@@ -699,10 +762,10 @@ const AIApplicantSelector = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Average Scores by Category</h3>
                 <div className="space-y-4">
                   {[
-                    { name: 'Skills', avg: Math.round(applicants.reduce((s, a) => s + a.skillsScore, 0) / applicants.length), icon: Star },
-                    { name: 'Experience', avg: Math.round(applicants.reduce((s, a) => s + a.experienceScore, 0) / applicants.length), icon: Briefcase },
-                    { name: 'Education', avg: Math.round(applicants.reduce((s, a) => s + a.educationScore, 0) / applicants.length), icon: GraduationCap },
-                    { name: 'Assessment', avg: Math.round(applicants.reduce((s, a) => s + a.assessmentScore, 0) / applicants.length), icon: FileText }
+                    { name: 'Skills', avg: Math.round(applicants.reduce((s, a) => s + (a.skillsScore || a.skills_score || 0), 0) / (applicants.length || 1)), icon: Star },
+                    { name: 'Experience', avg: Math.round(applicants.reduce((s, a) => s + (a.experienceScore || a.experience_score || 0), 0) / (applicants.length || 1)), icon: Briefcase },
+                    { name: 'Education', avg: Math.round(applicants.reduce((s, a) => s + (a.educationScore || a.education_score || 0), 0) / (applicants.length || 1)), icon: GraduationCap },
+                    { name: 'Assessment', avg: Math.round(applicants.reduce((s, a) => s + (a.assessmentScore || a.assessment_score || 0), 0) / (applicants.length || 1)), icon: FileText }
                   ].map(cat => (
                     <div key={cat.name} className="flex items-center gap-3">
                       <div className="bg-blue-100 p-2 rounded-lg">
@@ -733,7 +796,8 @@ const AIApplicantSelector = () => {
                 {(() => {
                   const skillCounts = {};
                   applicants.forEach(app => {
-                    app.skills.forEach(skill => {
+                    const skills = app.skills || [];
+                    skills.forEach(skill => {
                       skillCounts[skill] = (skillCounts[skill] || 0) + 1;
                     });
                   });
@@ -760,7 +824,7 @@ const AIApplicantSelector = () => {
                   <div>
                     <p className="font-medium text-green-900">High-Quality Pool</p>
                     <p className="text-sm text-green-700">
-                      {stats.highlyRecommended + stats.recommended} out of {stats.total} candidates ({Math.round(((stats.highlyRecommended + stats.recommended) / stats.total) * 100)}%) meet or exceed program requirements
+                      {stats.highlyRecommended + stats.recommended} out of {stats.total} candidates ({Math.round(((stats.highlyRecommended + stats.recommended) / (stats.total || 1)) * 100)}%) meet or exceed program requirements
                     </p>
                   </div>
                 </div>
@@ -778,7 +842,7 @@ const AIApplicantSelector = () => {
                   <div>
                     <p className="font-medium text-indigo-900">Strong Assessment Performance</p>
                     <p className="text-sm text-indigo-700">
-                      Average assessment score of {Math.round(applicants.reduce((s, a) => s + a.assessmentScore, 0) / applicants.length)}% indicates candidates are well-prepared for program challenges
+                      Average assessment score of {Math.round(applicants.reduce((s, a) => s + (a.assessmentScore || a.assessment_score || 0), 0) / (applicants.length || 1))}% indicates candidates are well-prepared for program challenges
                     </p>
                   </div>
                 </div>
@@ -795,7 +859,7 @@ const AIApplicantSelector = () => {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold">{selectedApplicant.name}</h2>
+                  <h2 className="text-2xl font-bold">{selectedApplicant.name || selectedApplicant.full_name}</h2>
                   <p className="text-blue-100 mt-1">{selectedApplicant.email}</p>
                 </div>
                 <button
@@ -807,7 +871,7 @@ const AIApplicantSelector = () => {
               </div>
               <div className="mt-4 flex items-center gap-4">
                 <div className="bg-white bg-opacity-20 px-4 py-2 rounded-lg">
-                  <p className="text-3xl font-bold">{selectedApplicant.overallScore}%</p>
+                  <p className="text-3xl font-bold">{selectedApplicant.overallScore || selectedApplicant.overall_score}%</p>
                   <p className="text-sm text-blue-100">Overall Score</p>
                 </div>
                 <span className={`px-4 py-2 rounded-lg text-sm font-semibold border-2 border-white ${
@@ -825,12 +889,12 @@ const AIApplicantSelector = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Score Breakdown</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    { label: 'Skills', score: selectedApplicant.skillsScore, icon: Star },
-                    { label: 'Experience', score: selectedApplicant.experienceScore, icon: Briefcase },
-                    { label: 'Education', score: selectedApplicant.educationScore, icon: GraduationCap },
-                    { label: 'Assessment', score: selectedApplicant.assessmentScore, icon: FileText },
-                    { label: 'Resume Quality', score: selectedApplicant.resumeQuality, icon: FileText },
-                    { label: 'Cover Letter', score: selectedApplicant.coverLetterScore, icon: Mail }
+                    { label: 'Skills', score: selectedApplicant.skillsScore || selectedApplicant.skills_score, icon: Star },
+                    { label: 'Experience', score: selectedApplicant.experienceScore || selectedApplicant.experience_score, icon: Briefcase },
+                    { label: 'Education', score: selectedApplicant.educationScore || selectedApplicant.education_score, icon: GraduationCap },
+                    { label: 'Assessment', score: selectedApplicant.assessmentScore || selectedApplicant.assessment_score, icon: FileText },
+                    { label: 'Resume Quality', score: selectedApplicant.resumeQuality || selectedApplicant.resume_quality_score, icon: FileText },
+                    { label: 'Cover Letter', score: selectedApplicant.coverLetterScore || selectedApplicant.cover_letter_score, icon: Mail }
                   ].map(item => (
                     <div key={item.label} className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
@@ -838,13 +902,13 @@ const AIApplicantSelector = () => {
                         <span className="text-sm font-medium text-gray-700">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-2xl font-bold ${getScoreColor(item.score)}`}>
-                          {item.score}%
+                        <span className={`text-2xl font-bold ${getScoreColor(item.score || 0)}`}>
+                          {item.score || 0}%
                         </span>
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full"
-                            style={{ width: `${item.score}%` }}
+                            style={{ width: `${item.score || 0}%` }}
                           />
                         </div>
                       </div>
@@ -876,7 +940,7 @@ const AIApplicantSelector = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Skills</p>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedApplicant.skills.map((skill, idx) => (
+                        {selectedApplicant.skills && selectedApplicant.skills.map((skill, idx) => (
                           <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
                             {skill}
                           </span>
@@ -887,7 +951,7 @@ const AIApplicantSelector = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm font-medium text-gray-600">Motivation Level</p>
-                      <p className="text-gray-900 font-semibold">{selectedApplicant.motivation}</p>
+                      <p className="text-gray-900 font-semibold">{selectedApplicant.motivation || selectedApplicant.motivation_level}</p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm font-medium text-gray-600">Availability</p>
@@ -904,11 +968,11 @@ const AIApplicantSelector = () => {
                   <div>
                     <p className="font-semibold text-gray-900 mb-1">AI Recommendation</p>
                     <p className="text-sm text-gray-700">
-                      {selectedApplicant.overallScore >= 90 
-                        ? `${selectedApplicant.name} is an exceptional candidate with outstanding qualifications across all criteria. Strong technical skills, relevant experience, and excellent assessment performance make this candidate ideal for immediate acceptance.`
-                        : selectedApplicant.overallScore >= 85
-                        ? `${selectedApplicant.name} demonstrates strong potential with solid qualifications. The candidate shows good alignment with program requirements and would benefit significantly from the training.`
-                        : `${selectedApplicant.name} shows promise with notable strengths in specific areas. Consider for acceptance with attention to developing weaker competencies during the program.`
+                      {(selectedApplicant.overallScore || selectedApplicant.overall_score) >= 90 
+                        ? `${selectedApplicant.name || selectedApplicant.full_name} is an exceptional candidate with outstanding qualifications across all criteria. Strong technical skills, relevant experience, and excellent assessment performance make this candidate ideal for immediate acceptance.`
+                        : (selectedApplicant.overallScore || selectedApplicant.overall_score) >= 85
+                        ? `${selectedApplicant.name || selectedApplicant.full_name} demonstrates strong potential with solid qualifications. The candidate shows good alignment with program requirements and would benefit significantly from the training.`
+                        : `${selectedApplicant.name || selectedApplicant.full_name} shows promise with notable strengths in specific areas. Consider for acceptance with attention to developing weaker competencies during the program.`
                       }
                     </p>
                   </div>
