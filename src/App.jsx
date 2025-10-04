@@ -165,20 +165,38 @@ const AIApplicantSelector = () => {
     const fetchApplicants = async () => {
       try {
         const API_URL = import.meta.env.VITE_API_URL || 'https://ai-applicant-selector-production.up.railway.app/api';
-        const response = await fetch(`${API_URL}/applicants`);
-        const result = await response.json();
+        console.log('Fetching from:', `${API_URL}/applicants`);
         
-        if (result.success && result.data.length > 0) {
+        const response = await fetch(`${API_URL}/applicants`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API Response:', result);
+        
+        if (result.success && result.data && result.data.length > 0) {
           // Use API data if available
+          console.log('✅ Using API data:', result.data.length, 'applicants');
           setApplicants(result.data);
           setFilteredApplicants(result.data);
         } else {
           // Fallback to sample data
+          console.log('⚠️ API returned no data, using sample data');
           setApplicants(sampleApplicants);
           setFilteredApplicants(sampleApplicants);
         }
       } catch (error) {
-        console.log('Using sample data:', error.message);
+        console.error('❌ API Error:', error);
+        console.log('Using sample data as fallback');
         // Fallback to sample data
         setApplicants(sampleApplicants);
         setFilteredApplicants(sampleApplicants);
