@@ -16,7 +16,14 @@ const pool = new pg.Pool({
   }
 });
 
+// Temporary fix for demo
+app.use(cors({
+  origin: '*', // Allow all origins (only for demo/testing!)
+  credentials: true
+}));
+
 // CORS - MUST come before routes
+/*
 app.use(cors({
   origin: [
     'https://ai-applicant-selector.vercel.app',
@@ -27,6 +34,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+*/
 
 // Middleware
 app.use(express.json());
