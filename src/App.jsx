@@ -161,8 +161,31 @@ const AIApplicantSelector = () => {
   ];
 
   useEffect(() => {
-    setApplicants(sampleApplicants);
-    setFilteredApplicants(sampleApplicants);
+    // Fetch from API or use sample data
+    const fetchApplicants = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'https://ai-applicant-selector-production.up.railway.app/api';
+        const response = await fetch(`${API_URL}/applicants`);
+        const result = await response.json();
+        
+        if (result.success && result.data.length > 0) {
+          // Use API data if available
+          setApplicants(result.data);
+          setFilteredApplicants(result.data);
+        } else {
+          // Fallback to sample data
+          setApplicants(sampleApplicants);
+          setFilteredApplicants(sampleApplicants);
+        }
+      } catch (error) {
+        console.log('Using sample data:', error.message);
+        // Fallback to sample data
+        setApplicants(sampleApplicants);
+        setFilteredApplicants(sampleApplicants);
+      }
+    };
+    
+    fetchApplicants();
   }, []);
 
   useEffect(() => {
