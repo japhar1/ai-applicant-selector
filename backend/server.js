@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database connection with error handling
+// Database connection
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -16,32 +16,18 @@ const pool = new pg.Pool({
   }
 });
 
-// Test database connection on startup
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('❌ Database connection error:', err);
-  } else {
-    console.log('✅ Database connected successfully at:', res.rows[0].now);
-  }
-});
-
-// Handle pool errors
-pool.on('error', (err) => {
-  console.error('Unexpected database error:', err);
-});
-
-// CORS
+// CORS MUST be configured BEFORE routes
 app.use(cors({
-  origin: [
-    'https://ai-applicant-selector.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ],
+  origin: '*', // Allow all origins temporarily
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Add explicit OPTIONS handler
+app.options('*', cors());
+
+// Body parser
 app.use(express.json());
 
 // Health check route
