@@ -45,6 +45,104 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date() });
 });
 
+// Search applicants
+app.get('/api/applicants/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    const result = await pool.query(
+      `SELECT * FROM applicants 
+       WHERE full_name ILIKE $1 
+       OR email ILIKE $1 
+       ORDER BY overall_score DESC`,
+      [`%${q}%`]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Filter by status
+app.get('/api/applicants/status/:status', async (req, res) => {
+  try {
+    const { status } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM applicants WHERE status = $1 ORDER BY overall_score DESC',
+      [status]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get statistics
+app.get('/api/statistics', async (req, res) => {
+  try {
+    const total = await pool.query('SELECT COUNT(*) FROM applicants');
+    const highlyRec = await pool.query(
+      "SELECT COUNT(*) FROM applicants WHERE status = 'Highly Recommended'"
+    );
+    const recommended = await pool.query(
+      "SELECT COUNT(*) FROM applicants WHERE status = 'Recommended'"
+    );
+    const avgScore = await pool.query(
+      'SELECT AVG(overall_score) as avg FROM applicants'
+    );
+
+    res.json({
+      success: true,
+      data: {
+        total: parseInt(total.rows[0].count),
+        highlyRecommended: parseInt(highlyRec.rows[0].count),
+        recommended: parseInt(recommended.rows[0].count),
+        avgScore: Math.round(parseFloat(avgScore.rows[0].avg))
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create new applicant
+app.post('/api/applicants', async (req, res) => {
+  try {
+    const { full_name, email, education, experience_years, status } = req.body;
+    
+    const result = await pool.query(
+      `INSERT INTO applicants (full_name, email, education, experience_years, status)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [full_name, email, education, experience_years, status]
+    );
+    
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update applicant status
+app.patch('/api/applicants/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const result = await pool.query(
+      'UPDATE applicants SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [status, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Applicant not found' });
+    }
+    
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Example: Get all applicants
 app.get('/api/applicants', async (req, res) => {
   try {
