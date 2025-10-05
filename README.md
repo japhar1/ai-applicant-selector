@@ -21,10 +21,15 @@ by 90%.
 
 ## 📸 Screenshots
 ![Dashboard](screenshots/dashboard.png)
+
 ![Applicants](screenshots/applicants.png)
+
 ![Analytics](screenshots/analytics.png)
+
 ![Upload Resume](screenshots/upload_resume.png)
+
 ![Toast Notifications](screenshots/notifications.png)
+
 ![CSV Export](screenshots/dataexportcsv.png)
 
 ## 🛠️ Tech Stack
