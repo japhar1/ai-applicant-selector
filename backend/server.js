@@ -206,38 +206,56 @@ function extractSkills(text) {
 }
 
 function extractEducation(text) {
-  const educationPatterns = [
-    /\b(B\.?Sc\.?|Bachelor|BSc|BA|B\.A\.)\s+(?:of|in|of Science in|of Arts in)?\s*([A-Za-z\s]+)/gi,
-    /\b(M\.?Sc\.?|Master|MSc|MA|M\.A\.)\s+(?:of|in|of Science in|of Arts in)?\s*([A-Za-z\s]+)/gi,
-    /\b(PhD|Ph\.D\.|Doctorate)\s+(?:of|in)?\s*([A-Za-z\s]+)/gi,
-    /\b(HND)\s+(?:in)?\s*([A-Za-z\s]+)/gi
+  // Improved education extraction: scan for degree keywords and fields
+  const degreeKeywords = [
+    'Bachelor', 'B.Sc', 'BSc', 'BA', 'B.A.', 'Master', 'M.Sc', 'MSc', 'MA', 'M.A.', 'PhD', 'Ph.D.', 'Doctorate', 'Diploma', 'HND', 'Certificate'
   ];
-  
-  for (const pattern of educationPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      return match[0].trim();
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  for (const line of lines) {
+    for (const keyword of degreeKeywords) {
+      if (line.toLowerCase().includes(keyword.toLowerCase())) {
+        // Try to extract degree and field
+        const degreePattern = /(Bachelor|B\.Sc|BSc|BA|B\.A\.|Master|M\.Sc|MSc|MA|M\.A\.|PhD|Ph\.D\.|Doctorate|Diploma|HND|Certificate)[^\n,]*?(?:in|of)?\s*([A-Za-z &\-]+)?/i;
+        const match = line.match(degreePattern);
+        if (match) {
+          return match[0].trim();
+        }
+        return line;
+      }
     }
   }
-  
   return null;
 }
 
 function extractExperience(text) {
-  const expPatterns = [
-    /(\d+)\+?\s*years?\s+(?:of\s+)?experience/gi,
-    /experience[:\s]+(\d+)\+?\s*years?/gi,
-    /(\d+)\+?\s*years?\s+in/gi,
-    /over\s+(\d+)\s+years/gi
+  // Improved experience extraction: scan for keywords and numbers
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const expKeywords = [
+    'years of experience', 'years experience', 'experience:', 'worked for', 'over', 'with', 'total experience'
   ];
-  
-  for (const pattern of expPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      return parseFloat(match[1]);
+  for (const line of lines) {
+    for (const keyword of expKeywords) {
+      if (line.toLowerCase().includes(keyword)) {
+        // Extract number near keyword
+        const numPattern = /(\d{1,2})\+?\s*(?:years|yrs)/i;
+        const match = line.match(numPattern);
+        if (match) {
+          return parseFloat(match[1]);
+        }
+        // Try to extract number anywhere in line
+        const fallbackNum = line.match(/(\d{1,2})/);
+        if (fallbackNum) {
+          return parseFloat(fallbackNum[1]);
+        }
+      }
     }
   }
-  
+  // Fallback: scan for any "X years" pattern in text
+  const anyYearsPattern = /(\d{1,2})\+?\s*(?:years|yrs)/i;
+  const anyMatch = text.match(anyYearsPattern);
+  if (anyMatch) {
+    return parseFloat(anyMatch[1]);
+  }
   return null;
 }
 
