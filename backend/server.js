@@ -96,7 +96,7 @@ const upload = multer({
 
 async function parsePDF(filePath) {
   const dataBuffer = fs.readFileSync(filePath);
-  const data = await pdfParse(dataBuffer); // FIX: Use pdfParse
+  const data = await pdfParse.default(dataBuffer); // Updated for ES module compatibility
   return data.text;
 }
 
