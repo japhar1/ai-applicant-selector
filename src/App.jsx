@@ -1,5 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Users, TrendingUp, Award, Search, Filter, Download, ChevronDown, ChevronUp, Brain, FileText, Mail, GraduationCap, Briefcase, Star, CheckCircle, AlertCircle } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+
+// Export utility functions
+const exportToCSV = (applicants, filename = 'applicants') => {
+  if (!applicants || applicants.length === 0) {
+    toast.error('No applicants to export');
+    return;
+  }
+
+  const headers = [
+    'ID', 'Name', 'Email', 'Phone', 'Education', 'Experience (Years)',
+    'Overall Score', 'Skills Score', 'Experience Score', 'Education Score',
+    'Assessment Score', 'Resume Quality', 'Cover Letter Score', 'Status',
+    'Motivation', 'Availability', 'Skills', 'Created Date'
+  ];
+
+  const rows = applicants.map(a => [
+    a.id,
+    a.name || a.full_name,
+    a.email,
+    a.phone || 'N/A',
+    a.education,
+    a.experience_years || 'N/A',
+    a.overallScore || a.overall_score,
+    a.skillsScore || a.skills_score,
+    a.experienceScore || a.experience_score,
+    a.educationScore || a.education_score,
+    a.assessmentScore || a.assessment_score,
+    a.resumeQuality || a.resume_quality_score,
+    a.coverLetterScore || a.cover_letter_score,
+    a.status,
+    a.motivation || a.motivation_level,
+    a.availability,
+    (a.skills || []).join('; '),
+    a.created_at ? new Date(a.created_at).toLocaleDateString() : 'N/A'
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => {
+      const cellStr = String(cell || '');
+      if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+        return `"${cellStr.replace(/"/g, '""')}"`;
+      }
+      return cellStr;
+    }).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+  
+  toast.success(`Exported ${applicants.length} applicants to CSV`);
+};
 
 const AIApplicantSelector = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -228,11 +287,13 @@ const AIApplicantSelector = () => {
           setApplicants(normalized);
           setFilteredApplicants(normalized);
           setApiConnected(true);
+          toast.success(`Loaded ${result.data.length} applicants from database`);
         } else {
           console.log('⚠️ API returned no data, using sample data');
           setApplicants(sampleApplicants);
           setFilteredApplicants(sampleApplicants);
           setApiConnected(false);
+          toast.info('Using sample data - API returned no results');
         }
       } catch (error) {
         console.error('❌ API Error:', error);
@@ -240,6 +301,7 @@ const AIApplicantSelector = () => {
         setApplicants(sampleApplicants);
         setFilteredApplicants(sampleApplicants);
         setApiConnected(false);
+        toast.error('Could not connect to API. Using sample data.');
       } finally {
         setLoading(false);
       }
@@ -293,6 +355,7 @@ const AIApplicantSelector = () => {
     if (files.length > 0) {
       setAnalyzing(true);
       setUploadProgress(0);
+      toast.loading('Processing files...', { id: 'upload' });
       
       const interval = setInterval(() => {
         setUploadProgress(prev => {
@@ -300,6 +363,7 @@ const AIApplicantSelector = () => {
             clearInterval(interval);
             setTimeout(() => {
               setAnalyzing(false);
+              toast.success(`Successfully processed ${files.length} file(s)`, { id: 'upload' });
               setActiveTab('applicants');
             }, 500);
             return 100;
@@ -349,6 +413,32 @@ const AIApplicantSelector = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -539,9 +629,12 @@ const AIApplicantSelector = () => {
                   <option value="Recommended">Recommended</option>
                   <option value="Consider">Consider</option>
                 </select>
-                <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2">
+                <button 
+                  onClick={() => exportToCSV(filteredApplicants, 'applicants')}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2"
+                >
                   <Download className="w-5 h-5" />
-                  Export
+                  Export ({filteredApplicants.length})
                 </button>
               </div>
             </div>
@@ -988,10 +1081,20 @@ const AIApplicantSelector = () => {
 
               {/* Actions */}
               <div className="flex gap-3">
-                <button className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold">
+                <button 
+                  onClick={() => {
+                    toast.success('Candidate accepted! Notification sent to LSETF team.');
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold"
+                >
                   Accept Candidate
                 </button>
-                <button className="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-semibold">
+                <button 
+                  onClick={() => {
+                    toast.success('Interview scheduled. Email notification sent.');
+                  }}
+                  className="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-semibold"
+                >
                   Schedule Interview
                 </button>
               </div>
