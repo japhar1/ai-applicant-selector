@@ -164,16 +164,23 @@ const AIApplicantSelector = () => {
 
   // Normalize API data to match expected format
   const normalizeApplicant = (applicant) => {
+    // Helper function to convert to number
+    const toNumber = (value) => {
+      if (value === null || value === undefined) return 0;
+      const num = parseFloat(value);
+      return isNaN(num) ? 0 : num;
+    };
+
     return {
       ...applicant,
-      // Handle field name differences
-      overallScore: applicant.overall_score || applicant.overallScore || 0,
-      skillsScore: applicant.skills_score || applicant.skillsScore || 0,
-      experienceScore: applicant.experience_score || applicant.experienceScore || 0,
-      educationScore: applicant.education_score || applicant.educationScore || 0,
-      assessmentScore: applicant.assessment_score || applicant.assessmentScore || 0,
-      resumeQuality: applicant.resume_quality_score || applicant.resumeQuality || 0,
-      coverLetterScore: applicant.cover_letter_score || applicant.coverLetterScore || 0,
+      // Handle field name differences - CONVERT TO NUMBERS
+      overallScore: toNumber(applicant.overall_score || applicant.overallScore),
+      skillsScore: toNumber(applicant.skills_score || applicant.skillsScore),
+      experienceScore: toNumber(applicant.experience_score || applicant.experienceScore),
+      educationScore: toNumber(applicant.education_score || applicant.educationScore),
+      assessmentScore: toNumber(applicant.assessment_score || applicant.assessmentScore),
+      resumeQuality: toNumber(applicant.resume_quality_score || applicant.resumeQuality),
+      coverLetterScore: toNumber(applicant.cover_letter_score || applicant.coverLetterScore),
       // Handle skills - might be array or comma-separated string
       skills: Array.isArray(applicant.skills) 
         ? applicant.skills 
