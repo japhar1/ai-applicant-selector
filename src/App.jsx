@@ -72,6 +72,12 @@ const AIApplicantSelector = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'overallScore', direction: 'desc' });
   const [loading, setLoading] = useState(true);
   const [apiConnected, setApiConnected] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState({
+    resume: null,
+    coverLetter: null
+  });
+  const [extractedData, setExtractedData] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Sample applicant data as fallback
   const sampleApplicants = [
@@ -350,27 +356,97 @@ const AIApplicantSelector = () => {
     }));
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = e.target.files;
-    if (files.length > 0) {
-      setAnalyzing(true);
-      setUploadProgress(0);
-      toast.loading('Processing files...', { id: 'upload' });
-      
-      const interval = setInterval(() => {
+    if (files.length === 0) return;
+
+    const fileType = e.target.name;
+    const file = files[0];
+
+    // Update uploaded files state
+    setUploadedFiles(prev => ({
+      ...prev,
+      [fileType]: file
+    }));
+
+    toast.success(`${fileType === 'resume' ? 'Resume' : 'Cover Letter'} uploaded: ${file.name}`);
+  };
+
+  const handleCompleteUpload = async () => {
+    if (!uploadedFiles.resume) {
+      toast.error('Please upload a resume first');
+      return;
+    }
+
+    setIsProcessing(true);
+    setAnalyzing(true);
+    setUploadProgress(0);
+    toast.loading('Processing application...', { id: 'processing' });
+
+    try {
+      const formData = new FormData();
+      formData.append('resume', uploadedFiles.resume);
+      if (uploadedFiles.coverLetter) {
+        formData.append('coverLetter', uploadedFiles.coverLetter);
+      }
+
+      const API_URL = import.meta.env.VITE_API_URL || 'https://ai-applicant-selector-production.up.railway.app/api';
+
+      // Simulate progress
+      const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setAnalyzing(false);
-              toast.success(`Successfully processed ${files.length} file(s)`, { id: 'upload' });
-              setActiveTab('applicants');
-            }, 500);
-            return 100;
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
           }
           return prev + 10;
         });
-      }, 200);
+      }, 300);
+
+      const response = await fetch(`${API_URL}/upload/complete-application`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setExtractedData(result.extractedData);
+        toast.success('Application processed successfully!', { id: 'processing' });
+        
+        // Refresh applicants list
+        setTimeout(async () => {
+          const applicantsResponse = await fetch(`${API_URL}/applicants`);
+          const applicantsData = await applicantsResponse.json();
+          if (applicantsData.success) {
+            const normalized = applicantsData.data.map(normalizeApplicant);
+            setApplicants(normalized);
+            setFilteredApplicants(normalized);
+          }
+          
+          // Switch to applicants tab
+          setActiveTab('applicants');
+          
+          // Reset upload state
+          setUploadedFiles({ resume: null, coverLetter: null });
+          setAnalyzing(false);
+          setIsProcessing(false);
+          setUploadProgress(0);
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(`Upload failed: ${error.message}`, { id: 'processing' });
+      setAnalyzing(false);
+      setIsProcessing(false);
+      setUploadProgress(0);
     }
   };
 
@@ -737,42 +813,122 @@ const AIApplicantSelector = () => {
                 <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Upload className="w-8 h-8 text-blue-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Applicant Data</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Applicant Documents</h2>
                 <p className="text-gray-600 mb-6">
-                  Upload resumes, cover letters, and assessment files for AI analysis
+                  Upload resume and cover letter for AI-powered analysis
                 </p>
                 
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 hover:border-blue-500 transition-all">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <div className="space-y-4">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto" />
-                      <div>
-                        <p className="text-lg font-semibold text-gray-900">
-                          Click to upload or drag and drop
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          PDF, DOC, DOCX, or CSV files
-                        </p>
-                      </div>
-                      <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
-                        Select Files
-                      </button>
-                    </div>
+                {/* Resume Upload */}
+                <div className="mb-6">
+                  <label className="block text-left mb-2 text-sm font-semibold text-gray-700">
+                    Resume (Required) *
                   </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-blue-500 transition-all">
+                    <input
+                      type="file"
+                      name="resume"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="resume-upload"
+                      disabled={isProcessing}
+                    />
+                    <label htmlFor="resume-upload" className="cursor-pointer">
+                      <div className="space-y-3">
+                        <FileText className="w-10 h-10 text-gray-400 mx-auto" />
+                        {uploadedFiles.resume ? (
+                          <div className="flex items-center justify-center gap-2 text-green-600">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="font-medium">{uploadedFiles.resume.name}</span>
+                            <span className="text-sm text-gray-500">
+                              ({(uploadedFiles.resume.size / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-lg font-semibold text-gray-900">
+                              Click to upload resume
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              PDF, DOC, DOCX, or TXT (Max 10MB)
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
                 </div>
+
+                {/* Cover Letter Upload */}
+                <div className="mb-6">
+                  <label className="block text-left mb-2 text-sm font-semibold text-gray-700">
+                    Cover Letter (Optional)
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-blue-500 transition-all">
+                    <input
+                      type="file"
+                      name="coverLetter"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="cover-letter-upload"
+                      disabled={isProcessing}
+                    />
+                    <label htmlFor="cover-letter-upload" className="cursor-pointer">
+                      <div className="space-y-3">
+                        <Mail className="w-10 h-10 text-gray-400 mx-auto" />
+                        {uploadedFiles.coverLetter ? (
+                          <div className="flex items-center justify-center gap-2 text-green-600">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="font-medium">{uploadedFiles.coverLetter.name}</span>
+                            <span className="text-sm text-gray-500">
+                              ({(uploadedFiles.coverLetter.size / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-lg font-semibold text-gray-900">
+                              Click to upload cover letter
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              PDF, DOC, DOCX, or TXT (Max 10MB)
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Process Button */}
+                <button
+                  onClick={handleCompleteUpload}
+                  disabled={!uploadedFiles.resume || isProcessing}
+                  className={`w-full py-4 rounded-lg font-semibold text-lg transition-all ${
+                    uploadedFiles.resume && !isProcessing
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Brain className="w-5 h-5 animate-pulse" />
+                      Processing Application...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      Process Application with AI
+                    </span>
+                  )}
+                </button>
 
                 {analyzing && (
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Analyzing applications...</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        AI analyzing documents...
+                      </span>
                       <span className="text-sm font-medium text-blue-600">{uploadProgress}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
@@ -781,48 +937,155 @@ const AIApplicantSelector = () => {
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
-                    <div className="mt-4 flex items-center justify-center gap-2 text-blue-600">
-                      <Brain className="w-5 h-5 animate-pulse" />
-                      <span className="text-sm">AI processing applicant data...</span>
+                    <div className="mt-4 space-y-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        {uploadProgress >= 20 && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        <span>Extracting text from documents...</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {uploadProgress >= 40 && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        <span>Identifying skills and experience...</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {uploadProgress >= 60 && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        <span>Analyzing education and qualifications...</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {uploadProgress >= 80 && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        <span>Calculating scores and recommendations...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Extracted Data Preview */}
+                {extractedData && !analyzing && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-left">
+                    <h3 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Extraction Successful!
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      {extractedData.name && (
+                        <p><strong>Name:</strong> {extractedData.name}</p>
+                      )}
+                      {extractedData.email && (
+                        <p><strong>Email:</strong> {extractedData.email}</p>
+                      )}
+                      {extractedData.phone && (
+                        <p><strong>Phone:</strong> {extractedData.phone}</p>
+                      )}
+                      {extractedData.education && (
+                        <p><strong>Education:</strong> {extractedData.education}</p>
+                      )}
+                      {extractedData.experience_years && (
+                        <p><strong>Experience:</strong> {extractedData.experience_years} years</p>
+                      )}
+                      {extractedData.skills && extractedData.skills.length > 0 && (
+                        <div>
+                          <strong>Skills ({extractedData.skills.length}):</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {extractedData.skills.map((skill, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Supported Formats */}
+            {/* Supported Features */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Supported Analysis Features</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Processing Features</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">Resume Parsing</p>
-                    <p className="text-sm text-gray-600">Extract skills, experience, and education</p>
+                    <p className="font-medium text-gray-900">Automatic Text Extraction</p>
+                    <p className="text-sm text-gray-600">Extract text from PDF, DOC, DOCX files</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">Cover Letter Analysis</p>
-                    <p className="text-sm text-gray-600">Assess motivation and communication skills</p>
+                    <p className="font-medium text-gray-900">Contact Information Detection</p>
+                    <p className="text-sm text-gray-600">Email, phone, name extraction</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">Skills Matching</p>
-                    <p className="text-sm text-gray-600">Compare skills against program requirements</p>
+                    <p className="font-medium text-gray-900">Skills Recognition</p>
+                    <p className="text-sm text-gray-600">Identify 100+ technical and soft skills</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">Intelligent Ranking</p>
-                    <p className="text-sm text-gray-600">Multi-criteria scoring and recommendations</p>
+                    <p className="font-medium text-gray-900">Experience Analysis</p>
+                    <p className="text-sm text-gray-600">Calculate years of experience automatically</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
+                  <div>
+                    <p className="font-medium text-gray-900">Education Parsing</p>
+                    <p className="text-sm text-gray-600">Detect degrees and certifications</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
+                  <div>
+                    <p className="font-medium text-gray-900">Quality Scoring</p>
+                    <p className="text-sm text-gray-600">Resume and cover letter quality assessment</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
+                  <div>
+                    <p className="font-medium text-gray-900">Sentiment Analysis</p>
+                    <p className="text-sm text-gray-600">Assess motivation and tone in cover letters</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
+                  <div>
+                    <p className="font-medium text-gray-900">Automatic Ranking</p>
+                    <p className="text-sm text-gray-600">Multi-criteria scoring and status assignment</p>
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Brain className="w-6 h-6 text-blue-600" />
+                How It Works
+              </h3>
+              <ol className="space-y-3 text-sm text-gray-700">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                  <span><strong>Upload Documents:</strong> Upload the applicant's resume (required) and cover letter (optional)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                  <span><strong>AI Processing:</strong> Our AI extracts text, identifies skills, analyzes experience, and calculates scores</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                  <span><strong>Automatic Scoring:</strong> Multi-criteria scoring across 6 categories with weighted algorithm</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                  <span><strong>Instant Results:</strong> Applicant is automatically added to database with recommendation status</span>
+                </li>
+              </ol>
             </div>
           </div>
         )}
