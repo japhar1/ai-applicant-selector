@@ -140,48 +140,38 @@ function extractPhone(text) {
 }
 
 function extractName(text) {
-  // FIX: Better name extraction - skip common headers and look for actual names
+  // Improved name extraction: prioritize first lines, flexible regex, fallback to old logic
   const lines = text.split('\n')
     .map(line => line.trim())
     .filter(line => line.length > 0);
-  
-  // Skip common resume headers/keywords
-  const skipKeywords = [
-    'resume', 'cv', 'curriculum vitae', 'results-oriented', 
-    'professional', 'experience', 'summary', 'objective',
-    'key achievements', 'education', 'skills', 'contact'
-  ];
-  
-  for (const line of lines) {
-    const lowerLine = line.toLowerCase();
-    
-    // Skip if it contains skip keywords
-    const shouldSkip = skipKeywords.some(keyword => lowerLine.includes(keyword));
-    if (shouldSkip) continue;
-    
-    // Skip if line is too long (likely a description)
-    if (line.length > 50) continue;
-    
-    // Skip if it starts with symbols or numbers
-    if (/^[>\-\*\d]/.test(line)) continue;
-    
-    // Look for pattern: FirstName LastName (2-4 words, capitalized)
-    const namePattern = /^[A-Z][a-z]+(?: [A-Z][a-z]+){1,3}$/;
-    if (namePattern.test(line)) {
-      // Additional check: avoid lines with common title words
-      if (!/engineer|developer|specialist|manager|analyst|consultant/i.test(line)) {
-        return line;
-      }
+
+  // 1. Check first 10 lines for a name (most resumes put name at the top)
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const line = lines[i];
+    // Flexible name pattern: 2-4 capitalized words, allow initials, ignore all caps
+    const namePattern = /^([A-Z][a-zA-Z\.'-]+\s){1,3}[A-Z][a-zA-Z\.'-]+$/;
+    if (namePattern.test(line) && !/resume|cv|summary|objective|profile|headline|contact|professional|experience|education|skills|manager|engineer|developer|consultant|analyst/i.test(line)) {
+      return line;
     }
   }
-  
-  // Fallback: Look for "Name:" pattern
-  const namePatternWithLabel = /(?:name|full name)[:\s]+([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})/i;
+
+  // 2. Fallback: Look for "Name:" or "Full Name:" pattern
+  const namePatternWithLabel = /(?:name|full name)[:\s]+([A-Z][a-zA-Z\.'-]+(?: [A-Z][a-zA-Z\.'-]+){1,3})/i;
   const nameMatch = text.match(namePatternWithLabel);
   if (nameMatch) {
     return nameMatch[1];
   }
-  
+
+  // 3. Fallback: Use previous logic for rest of lines
+  for (const line of lines) {
+    if (line.length > 50) continue;
+    if (/^[>\-\*\d]/.test(line)) continue;
+    const namePattern = /^[A-Z][a-z]+(?: [A-Z][a-z]+){1,3}$/;
+    if (namePattern.test(line) && !/engineer|developer|specialist|manager|analyst|consultant/i.test(line)) {
+      return line;
+    }
+  }
+
   return null;
 }
 
