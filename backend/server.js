@@ -206,28 +206,37 @@ function extractSkills(text) {
 }
 
 function extractEducation(text) {
-  // More robust education extraction
+  // Improved education extraction with field/major filtering
   const degreeRegex = /\b(Bachelor(?:'s)?|B\.Sc|BSc|BA|B\.A\.|Master(?:'s)?|M\.Sc|MSc|MA|M\.A\.|PhD|Ph\.D\.|Doctorate|Diploma|HND|Certificate)\b(?:[^\n\r]*?\b(?:in|of)\b)?\s*([A-Za-z &\-]*)/i;
+  const validFields = [
+    'Computer Science', 'Engineering', 'Business', 'Economics', 'Mathematics', 'Statistics', 'Physics', 'Chemistry', 'Biology', 'Medicine', 'Law', 'Accounting', 'Finance', 'Marketing', 'Management', 'Information Technology', 'Electrical Engineering', 'Mechanical Engineering', 'Civil Engineering', 'Software Engineering', 'Data Science', 'Political Science', 'Psychology', 'Sociology', 'Education', 'Architecture', 'Philosophy', 'History', 'Geography', 'Linguistics', 'English', 'French', 'Spanish', 'Public Health', 'Nursing', 'Environmental Science', 'Agriculture', 'Anthropology', 'Fine Arts', 'Graphic Design', 'Art', 'Music', 'Theatre', 'Journalism', 'Mass Communication', 'International Relations', 'Geology', 'Microbiology', 'Biochemistry', 'Pharmacy', 'Veterinary Medicine', 'Dentistry', 'Public Administration', 'Human Resource Management', 'Library Science', 'Urban Planning', 'Criminology', 'Social Work', 'Sports Science', 'Physical Education', 'Religious Studies', 'Zoology', 'Botany', 'Food Science', 'Nutrition', 'Medical Laboratory Science', 'Radiography', 'Estate Management', 'Quantity Surveying', 'Surveying', 'Building Technology', 'Education Technology', 'Guidance and Counselling', 'Early Childhood Education', 'Special Education', 'Adult Education', 'Educational Management', 'Educational Psychology', 'Educational Administration', 'Educational Planning', 'Educational Foundations', 'Educational Measurement', 'Educational Evaluation', 'Educational Research', 'Educational Statistics', 'Educational Sociology', 'Educational Philosophy', 'Educational History', 'Educational Geography', 'Educational Linguistics', 'Educational English', 'Educational French', 'Educational Spanish', 'Educational Music', 'Educational Theatre', 'Educational Art', 'Educational Fine Arts', 'Educational Graphic Design', 'Educational Journalism', 'Educational Mass Communication', 'Educational International Relations', 'Educational Geology', 'Educational Microbiology', 'Educational Biochemistry', 'Educational Pharmacy', 'Educational Veterinary Medicine', 'Educational Dentistry', 'Educational Public Administration', 'Educational Human Resource Management', 'Educational Library Science', 'Educational Urban Planning', 'Educational Criminology', 'Educational Social Work', 'Educational Sports Science', 'Educational Physical Education', 'Educational Religious Studies', 'Educational Zoology', 'Educational Botany', 'Educational Food Science', 'Educational Nutrition', 'Educational Medical Laboratory Science', 'Educational Radiography', 'Educational Estate Management', 'Educational Quantity Surveying', 'Educational Surveying', 'Educational Building Technology', 'Educational Education Technology', 'Educational Guidance and Counselling', 'Educational Early Childhood Education', 'Educational Special Education', 'Educational Adult Education', 'Educational Educational Management', 'Educational Educational Psychology', 'Educational Educational Administration', 'Educational Educational Planning', 'Educational Educational Foundations', 'Educational Educational Measurement', 'Educational Educational Evaluation', 'Educational Educational Research', 'Educational Educational Statistics', 'Educational Educational Sociology', 'Educational Educational Philosophy', 'Educational Educational History', 'Educational Educational Geography', 'Educational Educational Linguistics'
+  ];
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   for (const line of lines) {
     const match = line.match(degreeRegex);
     if (match) {
-      // Return degree and field if found
-      let result = match[1];
-      if (match[2] && match[2].length > 2) {
-        result += ' in ' + match[2].trim();
+      let field = match[2] ? match[2].trim() : '';
+      // Only return if field matches validFields or is empty
+      if (field.length === 0 || validFields.some(f => field.toLowerCase().includes(f.toLowerCase()))) {
+        let result = match[1];
+        if (field.length > 2) {
+          result += ' in ' + field;
+        }
+        return result;
       }
-      return result;
     }
   }
   // Fallback: look for degree keywords anywhere in text
   const fallbackMatch = text.match(degreeRegex);
   if (fallbackMatch) {
-    let result = fallbackMatch[1];
-    if (fallbackMatch[2] && fallbackMatch[2].length > 2) {
-      result += ' in ' + fallbackMatch[2].trim();
+    let field = fallbackMatch[2] ? fallbackMatch[2].trim() : '';
+    if (field.length === 0 || validFields.some(f => field.toLowerCase().includes(f.toLowerCase()))) {
+      let result = fallbackMatch[1];
+      if (field.length > 2) {
+        result += ' in ' + field;
+      }
+      return result;
     }
-    return result;
   }
   return null;
 }
