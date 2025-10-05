@@ -20,6 +20,7 @@ by 90%.
 ![Dashboard](screenshots/dashboard.png)
 ![Applicants](screenshots/applicants.png)
 ![Analytics](screenshots/analytics.png)
+![Analytics](screenshots/upload_resume.png)
 
 ## 🛠️ Technology Stack
 - **Frontend**: React 18, Tailwind CSS, Lucide Icons
