@@ -5,7 +5,7 @@ import pg from 'pg';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import * as pdf from 'pdf-parse';
+import pdfParse from 'pdf-parse'; // FIX: Import correctly
 import mammoth from 'mammoth';
 import natural from 'natural';
 
@@ -96,7 +96,7 @@ const upload = multer({
 
 async function parsePDF(filePath) {
   const dataBuffer = fs.readFileSync(filePath);
-  const data = await pdf(dataBuffer);
+  const data = await pdfParse(dataBuffer); // FIX: Use pdfParse
   return data.text;
 }
 
@@ -137,18 +137,46 @@ function extractPhone(text) {
 }
 
 function extractName(text) {
-  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  // FIX: Better name extraction - skip common headers and look for actual names
+  const lines = text.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
   
-  const namePattern = /name[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i;
-  const nameMatch = text.match(namePattern);
-  if (nameMatch) {
-    return nameMatch[1];
-  }
+  // Skip common resume headers/keywords
+  const skipKeywords = [
+    'resume', 'cv', 'curriculum vitae', 'results-oriented', 
+    'professional', 'experience', 'summary', 'objective',
+    'key achievements', 'education', 'skills', 'contact'
+  ];
   
   for (const line of lines) {
-    if (/^[A-Z][a-z]+\s+[A-Z][a-z]+/.test(line.trim())) {
-      return line.trim();
+    const lowerLine = line.toLowerCase();
+    
+    // Skip if it contains skip keywords
+    const shouldSkip = skipKeywords.some(keyword => lowerLine.includes(keyword));
+    if (shouldSkip) continue;
+    
+    // Skip if line is too long (likely a description)
+    if (line.length > 50) continue;
+    
+    // Skip if it starts with symbols or numbers
+    if (/^[>\-\*\d]/.test(line)) continue;
+    
+    // Look for pattern: FirstName LastName (2-4 words, capitalized)
+    const namePattern = /^[A-Z][a-z]+(?: [A-Z][a-z]+){1,3}$/;
+    if (namePattern.test(line)) {
+      // Additional check: avoid lines with common title words
+      if (!/engineer|developer|specialist|manager|analyst|consultant/i.test(line)) {
+        return line;
+      }
     }
+  }
+  
+  // Fallback: Look for "Name:" pattern
+  const namePatternWithLabel = /(?:name|full name)[:\s]+([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})/i;
+  const nameMatch = text.match(namePatternWithLabel);
+  if (nameMatch) {
+    return nameMatch[1];
   }
   
   return null;
@@ -157,17 +185,19 @@ function extractName(text) {
 function extractSkills(text) {
   const commonSkills = [
     'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust',
-    'TypeScript', 'Swift', 'Kotlin', 'Dart', 'Scala', 'R',
+    'TypeScript', 'Swift', 'Kotlin', 'Dart', 'Scala', 'R', 'PowerShell',
     'React', 'Angular', 'Vue.js', 'Node.js', 'Express', 'Django', 'Flask',
     'Spring Boot', 'Laravel', 'HTML', 'CSS', 'SASS', 'Tailwind CSS',
     'React Native', 'Flutter', 'Android', 'iOS',
-    'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle',
+    'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'SharePoint',
     'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'CI/CD',
-    'Terraform', 'DevOps', 'Linux', 'Git',
+    'Terraform', 'DevOps', 'Linux', 'Git', 'Active Directory', 'Exchange',
     'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch',
     'Pandas', 'NumPy', 'Data Analysis', 'Data Science', 'NLP',
     'Agile', 'Scrum', 'REST API', 'GraphQL', 'Microservices',
-    'Blockchain', 'Web3', 'Solidity', 'Cybersecurity', 'Ethical Hacking'
+    'Blockchain', 'Web3', 'Solidity', 'Cybersecurity', 'Ethical Hacking',
+    'Office 365', 'Microsoft 365', 'M365', 'Teams', 'OneDrive', 'BitLocker',
+    'Windows Server', 'Networking', 'AVAYA'
   ];
   
   const foundSkills = new Set();
@@ -204,7 +234,8 @@ function extractExperience(text) {
   const expPatterns = [
     /(\d+)\+?\s*years?\s+(?:of\s+)?experience/gi,
     /experience[:\s]+(\d+)\+?\s*years?/gi,
-    /(\d+)\+?\s*years?\s+in/gi
+    /(\d+)\+?\s*years?\s+in/gi,
+    /over\s+(\d+)\s+years/gi
   ];
   
   for (const pattern of expPatterns) {
@@ -307,7 +338,6 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Get all applicants with skills
 app.get('/api/applicants', async (req, res) => {
   try {
     console.log('📊 Fetching applicants with skills...');
@@ -344,7 +374,6 @@ app.get('/api/applicants', async (req, res) => {
   }
 });
 
-// Get single applicant
 app.get('/api/applicants/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -387,7 +416,6 @@ app.get('/api/applicants/:id', async (req, res) => {
   }
 });
 
-// Get statistics
 app.get('/api/statistics', async (req, res) => {
   try {
     const stats = await pool.query(`
@@ -421,7 +449,6 @@ app.get('/api/statistics', async (req, res) => {
 
 // ==================== UPLOAD ENDPOINTS ====================
 
-// Upload resume only
 app.post('/api/upload/resume', upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
@@ -473,7 +500,6 @@ app.post('/api/upload/resume', upload.single('resume'), async (req, res) => {
   }
 });
 
-// Complete application upload
 app.post('/api/upload/complete-application', 
   upload.fields([
     { name: 'resume', maxCount: 1 },
@@ -592,7 +618,6 @@ app.post('/api/upload/complete-application',
   }
 );
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
     success: false, 
@@ -601,7 +626,6 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error('💥 Unhandled error:', err);
   res.status(500).json({ 
@@ -611,7 +635,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 =====================================');
   console.log(`🚀 Server running on port ${PORT}`);
