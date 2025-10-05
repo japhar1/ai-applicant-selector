@@ -24,6 +24,8 @@ by 90%.
 ![Applicants](screenshots/applicants.png)
 ![Analytics](screenshots/analytics.png)
 ![Upload Resume](screenshots/upload_resume.png)
+![Toast Notifications](screenshots/notifications.png)
+![CSV Export](screenshots/dataexportcsv.png)
 
 ## 🛠️ Tech Stack
 - **Frontend:** React 18, Tailwind CSS, Lucide Icons
@@ -56,7 +58,7 @@ npm run dev
 npm run build
 
 
-👥 Team
+##👥 Team
 [Lou]
 
 📄 License
