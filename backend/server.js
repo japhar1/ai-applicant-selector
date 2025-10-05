@@ -5,7 +5,7 @@ import pg from 'pg';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import * as pdfParse from 'pdf-parse';
+// Remove static import for pdf-parse; use dynamic import in parsePDF
 import mammoth from 'mammoth';
 import natural from 'natural';
 
@@ -96,7 +96,8 @@ const upload = multer({
 
 async function parsePDF(filePath) {
   const dataBuffer = fs.readFileSync(filePath);
-  const data = await pdfParse(dataBuffer); // Correct usage for ES module
+  const pdfParse = (await import('pdf-parse')).default;
+  const data = await pdfParse(dataBuffer);
   return data.text;
 }
 
