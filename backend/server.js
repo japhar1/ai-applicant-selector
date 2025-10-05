@@ -2,6 +2,246 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import pg from 'pg';
+import { upload } from './middleware/upload.js';
+import { 
+  parseDocument, 
+  extractEmail, 
+  extractName, 
+  extractPhone,
+  extractSkills,
+  extractEducation,
+  extractExperience,
+  calculateResumeQuality,
+  analyzeCoverLetter
+} from './utils/documentParser.js';
+
+// Upload and process resume
+app.post('/api/upload/resume', upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No file uploaded' 
+      });
+    }
+
+    console.log(`📄 Processing resume: ${req.file.originalname}`);
+
+    // Parse document
+    const text = await parseDocument(req.file.path, req.file.mimetype);
+    
+    // Extract information
+    const extractedData = {
+      name: extractName(text),
+      email: extractEmail(text),
+      phone: extractPhone(text),
+      education: extractEducation(text),
+      experience_years: extractExperience(text),
+      skills: extractSkills(text),
+      resume_quality_score: calculateResumeQuality(text),
+      raw_text: text.substring(0, 1000) // First 1000 chars for reference
+    };
+
+    // Calculate scores (simplified for now)
+    const skillsScore = Math.min((extractedData.skills.length * 10) + 50, 100);
+    const experienceScore = extractedData.experience_years 
+      ? Math.min((extractedData.experience_years * 15) + 40, 100)
+      : 50;
+    const educationScore = extractedData.education ? 85 : 50;
+
+    console.log(`✅ Extracted: ${extractedData.name}, ${extractedData.skills.length} skills`);
+
+    res.json({
+      success: true,
+      data: {
+        ...extractedData,
+        skillsScore,
+        experienceScore,
+        educationScore,
+        file: {
+          originalname: req.file.originalname,
+          filename: req.file.filename,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        }
+      },
+      message: 'Resume processed successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error processing resume:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Upload and process cover letter
+app.post('/api/upload/cover-letter', upload.single('coverLetter'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No file uploaded' 
+      });
+    }
+
+    console.log(`📝 Processing cover letter: ${req.file.originalname}`);
+
+    const text = await parseDocument(req.file.path, req.file.mimetype);
+    const coverLetterScore = analyzeCoverLetter(text);
+
+    console.log(`✅ Cover letter analyzed, score: ${coverLetterScore}`);
+
+    res.json({
+      success: true,
+      data: {
+        coverLetterScore,
+        wordCount: text.split(/\s+/).length,
+        raw_text: text.substring(0, 500),
+        file: {
+          originalname: req.file.originalname,
+          filename: req.file.filename,
+          size: req.file.size
+        }
+      },
+      message: 'Cover letter processed successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error processing cover letter:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Complete application upload (resume + cover letter + create applicant)
+app.post('/api/upload/complete-application', 
+  upload.fields([
+    { name: 'resume', maxCount: 1 },
+    { name: 'coverLetter', maxCount: 1 }
+  ]), 
+  async (req, res) => {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // Process resume
+      let resumeData = {};
+      if (req.files['resume']) {
+        const resumeFile = req.files['resume'][0];
+        const resumeText = await parseDocument(resumeFile.path, resumeFile.mimetype);
+        
+        resumeData = {
+          name: extractName(resumeText),
+          email: extractEmail(resumeText),
+          phone: extractPhone(resumeText),
+          education: extractEducation(resumeText),
+          experience_years: extractExperience(resumeText),
+          skills: extractSkills(resumeText),
+          resume_quality_score: calculateResumeQuality(resumeText)
+        };
+      }
+
+      // Process cover letter
+      let coverLetterScore = 75; // default
+      if (req.files['coverLetter']) {
+        const coverFile = req.files['coverLetter'][0];
+        const coverText = await parseDocument(coverFile.path, coverFile.mimetype);
+        coverLetterScore = analyzeCoverLetter(coverText);
+      }
+
+      // Calculate scores
+      const skillsScore = Math.min((resumeData.skills?.length * 10) + 50, 100);
+      const experienceScore = resumeData.experience_years 
+        ? Math.min((resumeData.experience_years * 15) + 40, 100)
+        : 50;
+      const educationScore = resumeData.education ? 85 : 50;
+      const assessmentScore = 80; // Default - would come from actual assessment
+      const resumeQualityScore = resumeData.resume_quality_score || 75;
+
+      // Calculate overall score
+      const overallScore = (
+        skillsScore * 0.25 +
+        experienceScore * 0.25 +
+        educationScore * 0.20 +
+        assessmentScore * 0.15 +
+        resumeQualityScore * 0.10 +
+        coverLetterScore * 0.05
+      ).toFixed(2);
+
+      // Determine status
+      let status = 'Under Review';
+      if (overallScore >= 90) status = 'Highly Recommended';
+      else if (overallScore >= 80) status = 'Recommended';
+      else if (overallScore >= 70) status = 'Consider';
+
+      // Insert applicant
+      const applicantResult = await client.query(
+        `INSERT INTO applicants (
+          full_name, email, phone, education, experience_years,
+          overall_score, skills_score, experience_score, education_score,
+          assessment_score, resume_quality_score, cover_letter_score,
+          status, motivation_level, availability
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        RETURNING *`,
+        [
+          resumeData.name || 'Unknown',
+          resumeData.email || 'noemail@example.com',
+          resumeData.phone,
+          resumeData.education,
+          resumeData.experience_years,
+          overallScore,
+          skillsScore,
+          experienceScore,
+          educationScore,
+          assessmentScore,
+          resumeQualityScore,
+          coverLetterScore,
+          status,
+          'Medium', // default
+          'Immediate' // default
+        ]
+      );
+
+      const applicantId = applicantResult.rows[0].id;
+
+      // Insert skills
+      if (resumeData.skills && resumeData.skills.length > 0) {
+        for (const skill of resumeData.skills) {
+          await client.query(
+            'INSERT INTO skills (applicant_id, skill_name) VALUES ($1, $2)',
+            [applicantId, skill]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+
+      console.log(`✅ Created applicant ID: ${applicantId} with ${resumeData.skills?.length || 0} skills`);
+
+      res.status(201).json({
+        success: true,
+        data: applicantResult.rows[0],
+        message: 'Application submitted successfully'
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('❌ Error processing application:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    } finally {
+      client.release();
+    }
+  }
+);
 
 dotenv.config();
 
