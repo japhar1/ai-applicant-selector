@@ -206,23 +206,28 @@ function extractSkills(text) {
 }
 
 function extractEducation(text) {
-  // Improved education extraction: scan for degree keywords and fields
-  const degreeKeywords = [
-    'Bachelor', 'B.Sc', 'BSc', 'BA', 'B.A.', 'Master', 'M.Sc', 'MSc', 'MA', 'M.A.', 'PhD', 'Ph.D.', 'Doctorate', 'Diploma', 'HND', 'Certificate'
-  ];
+  // More robust education extraction
+  const degreeRegex = /\b(Bachelor(?:'s)?|B\.Sc|BSc|BA|B\.A\.|Master(?:'s)?|M\.Sc|MSc|MA|M\.A\.|PhD|Ph\.D\.|Doctorate|Diploma|HND|Certificate)\b(?:[^\n\r]*?\b(?:in|of)\b)?\s*([A-Za-z &\-]*)/i;
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   for (const line of lines) {
-    for (const keyword of degreeKeywords) {
-      if (line.toLowerCase().includes(keyword.toLowerCase())) {
-        // Try to extract degree and field
-        const degreePattern = /(Bachelor|B\.Sc|BSc|BA|B\.A\.|Master|M\.Sc|MSc|MA|M\.A\.|PhD|Ph\.D\.|Doctorate|Diploma|HND|Certificate)[^\n,]*?(?:in|of)?\s*([A-Za-z &\-]+)?/i;
-        const match = line.match(degreePattern);
-        if (match) {
-          return match[0].trim();
-        }
-        return line;
+    const match = line.match(degreeRegex);
+    if (match) {
+      // Return degree and field if found
+      let result = match[1];
+      if (match[2] && match[2].length > 2) {
+        result += ' in ' + match[2].trim();
       }
+      return result;
     }
+  }
+  // Fallback: look for degree keywords anywhere in text
+  const fallbackMatch = text.match(degreeRegex);
+  if (fallbackMatch) {
+    let result = fallbackMatch[1];
+    if (fallbackMatch[2] && fallbackMatch[2].length > 2) {
+      result += ' in ' + fallbackMatch[2].trim();
+    }
+    return result;
   }
   return null;
 }
