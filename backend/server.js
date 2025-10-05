@@ -5,7 +5,7 @@ import pg from 'pg';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import pdf from 'pdf-parse';
+import * as pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import natural from 'natural';
 
