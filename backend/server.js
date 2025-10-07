@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import mammoth from "mammoth";
 import natural from "natural";
+import axios from "axios";
 
 dotenv.config();
 
@@ -127,6 +128,22 @@ async function parseDocument(filePath, mimeType) {
 }
 
 // ==================== IMPROVED EXTRACTION FUNCTIONS ====================
+
+// Call Python FastAPI service for advanced skill extraction
+// The Python server must be running at http://localhost:8000
+async function getSemanticSkills(resumeText, skillsList) {
+  try {
+    const response = await axios.post("http://localhost:8000/parse_resume/", {
+      text: resumeText,
+      skills: skillsList,
+    });
+    // Response will contain { skills: [...], names: [...] }
+    return response.data.skills || [];
+  } catch (error) {
+    console.error("❌ Error calling NLP service:", error.message);
+    return [];
+  }
+}
 
 function extractName(text) {
   const lines = text.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
@@ -559,6 +576,11 @@ app.post("/api/upload/complete-application",
       if (req.files["resume"]) {
         const resumeFile = req.files["resume"][0];
         const resumeText = await parseDocument(resumeFile.path, resumeFile.mimetype);
+        // Define or load your desired skills list
+        const semanticSkillsList = [
+          "Python", "Machine Learning", "Data Science", "React", "AWS", "DevOps",
+          "Cybersecurity", "NLP", "Docker", "SQL"
+        ];
         
         resumeData = {
           name: extractName(resumeText),
@@ -566,7 +588,8 @@ app.post("/api/upload/complete-application",
           phone: extractPhone(resumeText),
           education: extractEducation(resumeText),
           experience_years: extractExperience(resumeText),
-          skills: extractSkills(resumeText),
+          //skills: extractSkills(resumeText),
+          skills: await getSemanticSkills(resumeText, semanticSkillsList),
           resume_quality_score: calculateResumeQuality(resumeText),
         };
         
