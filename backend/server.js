@@ -1,3 +1,4 @@
+// ----- Imports -----
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -6,16 +7,13 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import mammoth from "mammoth";
-import natural from "natural";
-import axios from "axios";
+import axios from "axios"; // --- ADDED: import axios for NLP microservice
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==================== DATABASE SETUP ====================
-
+// ----- Database Setup -----
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -45,10 +43,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
 app.options("*", cors());
 app.use(express.json());
-
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
@@ -104,22 +100,20 @@ async function parsePDF(filePath) {
   const data = await pdfParse(dataBuffer);
   return data.text;
 }
-
 async function parseDOCX(filePath) {
   const result = await mammoth.extractRawText({ path: filePath });
   return result.value;
 }
-
 async function parseTXT(filePath) {
   return fs.readFileSync(filePath, "utf-8");
 }
-
 async function parseDocument(filePath, mimeType) {
   if (mimeType === "application/pdf") {
     return await parsePDF(filePath);
-  } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    return await parseDOCX(filePath);
-  } else if (mimeType === "application/msword") {
+  } else if (
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mimeType === "application/msword"
+  ) {
     return await parseDOCX(filePath);
   } else if (mimeType === "text/plain") {
     return await parseTXT(filePath);
@@ -129,15 +123,14 @@ async function parseDocument(filePath, mimeType) {
 
 // ==================== IMPROVED EXTRACTION FUNCTIONS ====================
 
-// Call Python FastAPI service for advanced skill extraction
-// The Python server must be running at http://localhost:8000
+// Helper: Call Python NLP Service for Semantic Skills
 async function getSemanticSkills(resumeText, skillsList) {
   try {
     const response = await axios.post("http://localhost:8000/parse_resume/", {
       text: resumeText,
       skills: skillsList,
     });
-    // Response will contain { skills: [...], names: [...] }
+    console.log("DEBUG: Semantic skills from Python:", response.data.skills);
     return response.data.skills || [];
   } catch (error) {
     console.error("❌ Error calling NLP service:", error.message);
@@ -416,6 +409,39 @@ function analyzeCoverLetter(text) {
   return Math.min(Math.round(baseScore + lengthScore + Math.min(toneScore, 25)), 100);
 }
 
+// ----- Improved extractName -----
+function extractName(text) {
+  // Try strict, then fallback to first non-header, non-email
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const skipWords = [
+    "resume", "cv", "curriculum", "vitae", "results", "contact", "profile",
+    "summary", "objective", "experience", "skills", "education"
+  ];
+  for (let line of lines.slice(0, 20)) {
+    if (line.length < 3 || skipWords.some(w => line.toLowerCase().includes(w))) continue;
+    if (/^[a-z\d]/i.test(line) && !/@/.test(line)) return line;
+  }
+  return "Unknown";
+}
+
+// ----- Improved extractExperience -----
+function extractExperience(text) {
+  // Pattern for explicit experience
+  let years = null;
+  const match = text.match(/(\d{1,2})\s*(?:years|yrs)[^.\d]{0,20}(?:experience|exp)?/i);
+  if (match) {
+    years = parseInt(match[1]);
+    if (years > 0 && years < 35) return years;
+  }
+  // Range between first and last year (simple fallback)
+  const dates = [...text.matchAll(/(19|20)\d{2}/g)].map(m => parseInt(m[0]));
+  if (dates.length >= 2) {
+    const expEstimate = Math.abs(Math.max(...dates) - Math.min(...dates));
+    if (expEstimate > 0 && expEstimate < 35) return expEstimate;
+  }
+  return 0;
+}
+
 // ==================== ROUTES ====================
 
 app.get("/", (req, res) => {
@@ -561,54 +587,49 @@ app.get("/api/statistics", async (req, res) => {
 
 // ==================== UPLOAD ENDPOINTS ====================
 
-app.post("/api/upload/complete-application",
+app.post(
+  "/api/upload/complete-application",
   upload.fields([
     { name: "resume", maxCount: 1 },
     { name: "coverLetter", maxCount: 1 },
   ]),
   async (req, res) => {
     const client = await pool.connect();
-    
     try {
       await client.query("BEGIN");
-      
+
       let resumeData = {};
       if (req.files["resume"]) {
         const resumeFile = req.files["resume"][0];
         const resumeText = await parseDocument(resumeFile.path, resumeFile.mimetype);
-        // Define or load your desired skills list
+
+        // --- Use a robust semantic skills list (expand as you wish)
         const semanticSkillsList = [
           "Python", "Machine Learning", "Data Science", "React", "AWS", "DevOps",
-          "Cybersecurity", "NLP", "Docker", "SQL"
+          "Cybersecurity", "NLP", "Docker", "SQL", "Spring Boot", "TensorFlow"
         ];
-        
+
         resumeData = {
           name: extractName(resumeText),
           email: extractEmail(resumeText),
           phone: extractPhone(resumeText),
           education: extractEducation(resumeText),
           experience_years: extractExperience(resumeText),
-          //skills: extractSkills(resumeText),
           skills: await getSemanticSkills(resumeText, semanticSkillsList),
           resume_quality_score: calculateResumeQuality(resumeText),
         };
-        
-        console.log("🔍 Extracted data:", {
-          name: resumeData.name,
-          email: resumeData.email,
-          education: resumeData.education,
-          experience: resumeData.experience_years,
-          skills_count: resumeData.skills?.length,
-        });
+        console.log("DEBUG: Resume extracted data:", resumeData);
       }
       
+      // --- Add your logic for cover letter, scoring, and saving to DB (as before) ---
+
       let coverLetterScore = 75;
       if (req.files["coverLetter"]) {
         const coverFile = req.files["coverLetter"][0];
         const coverText = await parseDocument(coverFile.path, coverFile.mimetype);
         coverLetterScore = analyzeCoverLetter(coverText);
       }
-      
+
       const skillsScore = Math.min((resumeData.skills?.length || 0) * 10 + 50, 100);
       const experienceScore = resumeData.experience_years
         ? Math.min(resumeData.experience_years * 15 + 40, 100)
@@ -616,7 +637,7 @@ app.post("/api/upload/complete-application",
       const educationScore = resumeData.education ? 85 : 50;
       const assessmentScore = 80;
       const resumeQualityScore = resumeData.resume_quality_score || 75;
-      
+
       const overallScore = (
         skillsScore * 0.25 +
         experienceScore * 0.25 +
@@ -625,12 +646,12 @@ app.post("/api/upload/complete-application",
         resumeQualityScore * 0.1 +
         coverLetterScore * 0.05
       ).toFixed(2);
-      
+
       let status = "Under Review";
       if (overallScore >= 90) status = "Highly Recommended";
       else if (overallScore >= 80) status = "Recommended";
       else if (overallScore >= 70) status = "Consider";
-      
+
       const applicantResult = await client.query(
         `INSERT INTO applicants (
           full_name, email, phone, education, experience_years,
@@ -653,13 +674,13 @@ app.post("/api/upload/complete-application",
           resumeQualityScore,
           coverLetterScore,
           status,
-          "Medium",
-          "Immediate",
+          "Medium",      // motivation_level
+          "Immediate"    // availability
         ]
       );
-      
+
       const applicantId = applicantResult.rows[0].id;
-      
+      // Skills insert (if any)
       if (resumeData.skills && resumeData.skills.length > 0) {
         for (const skill of resumeData.skills) {
           await client.query(
@@ -668,11 +689,10 @@ app.post("/api/upload/complete-application",
           );
         }
       }
-      
+
       await client.query("COMMIT");
-      
       console.log(`✅ Created applicant ID: ${applicantId} with ${resumeData.skills?.length || 0} skills`);
-      
+
       res.status(201).json({
         success: true,
         data: applicantResult.rows[0],
