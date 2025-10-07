@@ -126,7 +126,7 @@ async function parseDocument(filePath, mimeType) {
 // Helper: Call Python NLP Service for Semantic Skills
 async function getSemanticSkills(resumeText, skillsList) {
   try {
-    const response = await axios.post("http://localhost:8000/parse_resume/", {
+    const response = await axios.post("ai-applicant-selector-production-9af5.up.railway.app/parse_resume/", {
       text: resumeText,
       skills: skillsList,
     });
