@@ -1,4 +1,5 @@
 node_backend/
+old/
 frontend/node_modules
 dist
 frontend/.env
