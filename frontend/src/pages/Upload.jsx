@@ -12,13 +12,14 @@ export default function Upload() {
     e.preventDefault();
     if (!file) return;
 
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       setLoading(true);
       setMessage("");
-      await axios.post("https://ai-applicant-selector-production.up.railway.app/api/upload", formData, {
+      await axios.post(`${BASE_URL}/api/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setMessage("✅ Upload successful! Processing data...");

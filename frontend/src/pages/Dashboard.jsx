@@ -6,9 +6,10 @@ import axios from "axios";
 
 export default function Dashboard() {
   const [candidates, setCandidates] = useState([]);
-
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  
   useEffect(() => {
-    axios.get("https://ai-applicant-selector-production.up.railway.app/api/applicants")
+    axios.get(`${BASE_URL}/api/applicants`)
       .then((res) => setCandidates(res.data))
       .catch(() => console.error("Failed to fetch candidates"));
   }, []);
