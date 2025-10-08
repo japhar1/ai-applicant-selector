@@ -62,6 +62,7 @@ Backend (FastAPI / Node.js)
 ```
 > The architecture is modular — the scoring logic can easily evolve into a Machine Learning model integrated with FastAPI.
 
+---
 🧰 Tech Stack
 | Layer      | Technology                                |
 | ---------- | ----------------------------------------- |
@@ -71,6 +72,7 @@ Backend (FastAPI / Node.js)
 | Deployment | Vercel (frontend) + Railway (backend)     |
 | AI Layer   | spaCy / OpenAI API / Custom Scoring       |
 
+---
 
 🧑‍💻 Setup Instructions
 
@@ -92,6 +94,7 @@ npm run dev
 uvicorn main:app --reload
 ```
 
+---
 
 🔌 Integration Readiness
 
@@ -111,6 +114,8 @@ Example response:
 ```
 This format enables easy synchronization into user profiles or dashboards within the LMS ecosystem.
 
+---
+
 📊 Evaluation Alignment
 | Criteria                  | Demonstration                                   |
 | ------------------------- | ----------------------------------------------- |
@@ -119,6 +124,7 @@ This format enables easy synchronization into user profiles or dashboards within
 | **Scalability**           | Modular architecture + reusable components      |
 | **Integration Readiness** | REST endpoints ready for LMS integration        |
 
+---
 
 🧩 Future Improvements
 - Full NLP model for semantic skill matching
@@ -126,82 +132,11 @@ This format enables easy synchronization into user profiles or dashboards within
 - Bias detection metrics
 - LSETF LMS OAuth integration
 
+---
 
 🏁 Team & Credits
 Developed by: [Your Team Name]
 For: PLP Nigeria Hackathon (LSETF / Opolo)
 Contact: team@yourapp.com
-```yaml
 
 ---
-
-## 🧠 2. Technical Architecture Diagram (text description)
-
-You can create this in [draw.io](https://app.diagrams.net/) or [Excalidraw](https://excalidraw.com/) for your presentation.
-
-```
-┌──────────────────────────────────────────┐
-│ User Interface │
-│ (React + Tailwind, Deployed on Vercel) │
-│ - Home Page (Overview) │
-│ - Upload Page (File Input) │
-│ - Dashboard (Ranked Results) │
-└──────────────────────────────────────────┘
-│
-▼
-┌──────────────────────────────────────────┐
-│ Backend API Layer │
-│ (FastAPI / Node.js on Railway) │
-│ Endpoints: │
-│ • /api/upload → parse resumes │
-│ • /api/applicants → ranked list │
-│ • /api/lsetf-export → JSON for LMS │
-└──────────────────────────────────────────┘
-│
-▼
-┌──────────────────────────────────────────┐
-│ AI Engine │
-│ - Resume Parser (spaCy / embeddings) │
-│ - Scoring Function │
-│ - Ranking Algorithm │
-└──────────────────────────────────────────┘
-│
-▼
-┌──────────────────────────────────────────┐
-│ LSETF LMS Integration │
-│ Future connection via REST/GraphQL │
-│ Enables applicant data import/export │
-└──────────────────────────────────────────┘
-
-```yaml
-
----
-
-## 🧾 3. Pitch Deck Outline (6–8 slides)
-
-Use this structure for your Hackathon presentation (Google Slides, Canva, or PowerPoint).
-
-| **Slide** | **Title** | **Content** |
-|------------|------------|-------------|
-| 1️⃣ | **Title Slide** | Project name, team, logos (PLP / LSETF / Opolo), tagline. |
-| 2️⃣ | **Problem Statement** | Hiring for programs is slow, manual, and biased. Show 1–2 stats about recruitment inefficiency. |
-| 3️⃣ | **Solution Overview** | Introduce your AI Applicant Selector — automated, scalable, fair. One screenshot of dashboard. |
-| 4️⃣ | **How It Works** | 3-step process: Upload → Analyze → Rank. Include your architecture diagram. |
-| 5️⃣ | **Demo / Prototype** | Screenshots or short clip of your working app (upload → ranked list). |
-| 6️⃣ | **Impact & Scalability** | Faster selection, reduced bias, integration with LSETF LMS. Add metrics like “50% faster screening”. |
-| 7️⃣ | **Tech Stack & AI Model** | Logos of React, FastAPI, Tailwind, Python; short text about weighted scoring logic. |
-| 8️⃣ | **Next Steps & Ask** | Future improvements + readiness for pilot. End with your contact details. |
-
----
-
-## ✅ Next Steps (your submission checklist)
-- [x] Deploy updated frontend to Vercel  
-- [x] Confirm backend endpoints on Railway  
-- [x] Add this `README.md` and push  
-- [x] Generate architecture diagram image  
-- [x] Build 8-slide pitch deck (I can help you fill in visuals & content next)
-
----
-
-Would you like me to **generate the actual pitch deck slides (with text and visuals layout suggestions)** next — so you can drop it straight into Canva or Google Slides?
-```
