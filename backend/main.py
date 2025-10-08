@@ -1,71 +1,61 @@
-from fastapi import FastAPI, UploadFile, File
-from models.applicant_model import Applicant, RankedApplicant
-from services.scoring_service import calculate_applicant_score
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-import csv
-import io
+import pandas as pd
+from io import StringIO
+from services.scoring_service import score_applicants
 
-app = FastAPI(
-    title="AI Applicant Selector API",
-    description="Backend for AI-powered applicant screening and ranking (PLP Hackathon)",
-    version="1.0.0"
+app = FastAPI(title="AI Applicant Selector API")
+
+# Enable CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Temporary in-memory storage
-applicants_db: List[RankedApplicant] = []
-
-
-@app.post("/api/upload")
-async def upload_applicant_file(file: UploadFile = File(...)):
-    """
-    Accepts a CSV file of applicants with columns:
-    name,email,role,skills,experience_years,education_level,assessment_score
-    """
-    content = await file.read()
-    decoded = content.decode("utf-8")
-    reader = csv.DictReader(io.StringIO(decoded))
-
-    global applicants_db
-    applicants_db.clear()
-
-    for i, row in enumerate(reader, start=1):
-        skills = [s.strip() for s in row.get("skills", "").split(",") if s.strip()]
-        applicant = Applicant(
-            id=i,
-            name=row.get("name", f"Applicant {i}"),
-            email=row.get("email", ""),
-            role=row.get("role", ""),
-            skills=skills,
-            experience_years=float(row.get("experience_years", 0)),
-            education_level=row.get("education_level", "none"),
-            assessment_score=float(row.get("assessment_score", 0))
-        )
-        score = calculate_applicant_score(applicant)
-        applicants_db.append(RankedApplicant(**applicant.dict(), score=score))
-
-    return {"message": f"Processed {len(applicants_db)} applicants successfully."}
-
-
-@app.get("/api/applicants", response_model=List[RankedApplicant])
-async def get_ranked_applicants():
-    """
-    Returns ranked applicants sorted by AI score (descending).
-    """
-    ranked = sorted(applicants_db, key=lambda x: x.score, reverse=True)
-    return ranked
-
-
-@app.get("/api/lsetf-export")
-async def export_for_lsetf():
-    """
-    Returns LMS-ready JSON (id, name, email, score only).
-    """
-    return [
-        {"id": a.id, "name": a.name, "email": a.email, "score": a.score}
-        for a in sorted(applicants_db, key=lambda x: x.score, reverse=True)
-    ]
-
-
 @app.get("/")
-async def root():
-    return {"message": "AI Applicant Selector API running"}
+def root():
+    return {"message": "AI Applicant Selector API is running."}
+
+
+# ---- AI SCORING ----
+@app.post("/api/score")
+async def upload_and_score(file: UploadFile = File(...), target_skills: str = Form(...)):
+    """
+    Upload a CSV file with applicant data and score them against target skills.
+    """
+    contents = await file.read()
+    df = pd.read_csv(StringIO(contents.decode("utf-8")))
+
+    # Expected columns: name,email,skills,experience_years,education_level
+    applicants = []
+    for i, row in df.iterrows():
+        applicants.append({
+            "id": i + 1,
+            "name": row.get("name", ""),
+            "email": row.get("email", ""),
+            "skills": str(row.get("skills", "")).split(","),
+            "experience_years": float(row.get("experience_years", 0)),
+            "education_level": str(row.get("education_level", "none"))
+        })
+
+    target_skills_list = target_skills.split(",")
+    ranked = score_applicants(applicants, target_skills_list)
+    return {"ranked_applicants": ranked}
+
+
+@app.get("/api/applicants")
+def get_sample_applicants():
+    """
+    Returns a pre-ranked demo list for frontend visualization.
+    """
+    sample = [
+        {"id": 1, "name": "Ada Obi", "skills": ["Python", "Data Analysis", "Excel"], "experience_years": 4, "education_level": "Bachelor"},
+        {"id": 2, "name": "Tunde Bello", "skills": ["JavaScript", "React", "Node"], "experience_years": 3, "education_level": "HND"},
+        {"id": 3, "name": "Ngozi Eze", "skills": ["Python", "Machine Learning", "TensorFlow"], "experience_years": 6, "education_level": "Masters"}
+    ]
+    target = ["Python", "Data Analysis", "Machine Learning"]
+    return {"ranked_applicants": score_applicants(sample, target)}
