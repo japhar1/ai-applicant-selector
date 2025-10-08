@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-spacy
-torch
-sentence-transformers
-# and any others you use
