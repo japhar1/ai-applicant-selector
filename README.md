@@ -63,7 +63,7 @@ Backend (FastAPI / Node.js)
 > The architecture is modular — the scoring logic can easily evolve into a Machine Learning model integrated with FastAPI.
 
 ---
-🧰 Tech Stack
+#🧰 Tech Stack
 | Layer      | Technology                                |
 | ---------- | ----------------------------------------- |
 | Frontend   | React (Vite) + TailwindCSS + Lucide Icons |
@@ -74,7 +74,7 @@ Backend (FastAPI / Node.js)
 
 ---
 
-🧑‍💻 Setup Instructions
+#🧑‍💻 Setup Instructions
 
 1. Clone the repo:
 ```bash
@@ -96,7 +96,7 @@ uvicorn main:app --reload
 
 ---
 
-🔌 Integration Readiness
+#🔌 Integration Readiness
 
 The system outputs standardized JSON suitable for ingestion by LSETF’s LMS.
 
@@ -116,7 +116,8 @@ This format enables easy synchronization into user profiles or dashboards within
 
 ---
 
-📊 Evaluation Alignment
+#📊 Evaluation Alignment
+
 | Criteria                  | Demonstration                                   |
 | ------------------------- | ----------------------------------------------- |
 | **Algorithm Accuracy**    | Weighted scoring logic + sample data validation |
@@ -126,7 +127,7 @@ This format enables easy synchronization into user profiles or dashboards within
 
 ---
 
-🧩 Future Improvements
+#🧩 Future Improvements
 - Full NLP model for semantic skill matching
 - Multi-program applicant clustering
 - Bias detection metrics
@@ -134,9 +135,9 @@ This format enables easy synchronization into user profiles or dashboards within
 
 ---
 
-🏁 Team & Credits
-Developed by: [Your Team Name]
-For: PLP Nigeria Hackathon (LSETF / Opolo)
-Contact: team@yourapp.com
+#🏁 Team & Credits
+- Developed by: [TeamOrochi]
+- For: PLP Nigeria Hackathon (LSETF / Opolo)
+- Contact: @japhar1
 
 ---
