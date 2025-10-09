@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [message, setMessage] = useState("");
   const [results, setResults] = useState([]);
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ai-applicant-selector-production.up.railway.app";
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
