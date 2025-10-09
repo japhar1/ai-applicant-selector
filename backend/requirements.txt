@@ -5,3 +5,5 @@ python-multipart
 python-docx
 PyPDF2
 spacy
+scikit-learn
+numpy
