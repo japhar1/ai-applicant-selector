@@ -29,7 +29,7 @@ const Dashboard = () => {
       formData.append("file", file);
       formData.append("target_skills", skills);
 
-      const response = await axios.post(`${BASE_URL}/api/score`, formData);
+      const response = await axios.post(`${BASE_URL}/api/score-resumes`, formData);
       console.log("Response:", response.data);
 
       setMessage("Upload & Scoring Complete ✅");

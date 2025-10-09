@@ -7,9 +7,14 @@ import logging
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
+origins = [
+    "https://ai-applicant-selector.vercel.app",  # frontend
+    "http://localhost:5173",                     # local dev
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
