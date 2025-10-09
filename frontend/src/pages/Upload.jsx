@@ -30,14 +30,18 @@ const Upload = ({ onUploadSuccess }) => {
       formData.append("file", file);
       formData.append("target_skills", skills);
 
-      const response = await axios.post(`${BASE_URL}/api/score`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // ❌ Don't manually set Content-Type
+      const response = await axios.post(`${BASE_URL}/api/score`, formData);
 
+      console.log("Response:", response.data);
       setMessage("Upload & Scoring Complete ✅");
-      onUploadSuccess(response.data.ranked_applicants);
+
+      // ✅ Only call if it's actually a function
+      if (typeof onUploadSuccess === "function") {
+        onUploadSuccess(response.data.ranked_applicants || []);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Upload error:", err);
       setMessage("Error uploading or scoring applicants.");
     } finally {
       setLoading(false);
@@ -46,7 +50,9 @@ const Upload = ({ onUploadSuccess }) => {
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded-2xl shadow-sm">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-800">Upload Applicant CSV</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+        Upload Applicant CSV
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
@@ -69,7 +75,11 @@ const Upload = ({ onUploadSuccess }) => {
           disabled={loading}
           className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
         >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : <UploadIcon size={20} />}
+          {loading ? (
+            <Loader2 className="animate-spin" size={20} />
+          ) : (
+            <UploadIcon size={20} />
+          )}
           {loading ? "Scoring Applicants..." : "Upload & Score"}
         </button>
       </form>
