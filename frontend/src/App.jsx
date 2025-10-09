@@ -1,33 +1,24 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 const App = () => {
   return (
-    <Router>
-      {/* ✅ Simple Navbar */}
-      <nav className="bg-white shadow-sm p-4 flex justify-between items-center">
-        <Link to="/" className="text-xl font-semibold text-blue-600">
-          AI Applicant Selector
-        </Link>
-        <div className="space-x-4">
-          <Link to="/" className="text-gray-700 hover:text-blue-600">
-            Home
-          </Link>
-          <Link to="/dashboard" className="text-gray-700 hover:text-blue-600">
-            Dashboard
-          </Link>
-        </div>
-      </nav>
-
-      <main className="p-6">
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          {/* Redirect /upload → /dashboard for backward compatibility */}
+          <Route path="/upload" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
-    </Router>
+      <Footer />
+    </div>
   );
 };
 
