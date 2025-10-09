@@ -34,7 +34,6 @@ const Upload = () => {
 
       setMessage("Upload & Scoring Complete ✅");
       setResults(response.data.ranked_applicants || []); // ✅ display results below
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     } catch (err) {
       console.error("Upload error:", err);
       setMessage("Error uploading or scoring applicants.");
