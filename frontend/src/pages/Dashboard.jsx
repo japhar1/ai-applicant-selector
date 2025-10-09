@@ -1,54 +1,121 @@
 import React, { useState } from "react";
-import Upload from "./Upload";
+import axios from "axios";
+import { Loader2, Upload as UploadIcon, CheckCircle2 } from "lucide-react";
 
 const Dashboard = () => {
-  const [applicants, setApplicants] = useState([]);
+  const [file, setFile] = useState(null);
+  const [skills, setSkills] = useState("Python,Data Analysis,Machine Learning");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [results, setResults] = useState([]);
+
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+    setMessage("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) {
+      setMessage("Please upload a CSV file first.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("target_skills", skills);
+
+      const response = await axios.post(`${BASE_URL}/api/score`, formData);
+      console.log("Response:", response.data);
+
+      setMessage("Upload & Scoring Complete ✅");
+      setResults(response.data.ranked_applicants || []);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setMessage("Error uploading or scoring applicants.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">AI Applicant Ranking Dashboard</h1>
+    <div className="max-w-5xl mx-auto p-6 bg-white rounded-2xl shadow-sm">
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+        Applicant Scoring Dashboard
+      </h2>
 
-      <Upload onUploadSuccess={setApplicants} />
+      {/* Upload Section */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="file"
+          accept=".csv"
+          onChange={handleFileChange}
+          className="border border-gray-300 p-2 rounded-md w-full"
+        />
+        <input
+          type="text"
+          value={skills}
+          onChange={(e) => setSkills(e.target.value)}
+          placeholder="Enter target skills (comma separated)"
+          className="border border-gray-300 p-2 rounded-md w-full"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 w-full"
+        >
+          {loading ? (
+            <Loader2 className="animate-spin" size={20} />
+          ) : (
+            <UploadIcon size={20} />
+          )}
+          {loading ? "Scoring Applicants..." : "Upload & Score"}
+        </button>
+      </form>
 
-      {applicants.length > 0 ? (
-        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {applicants.map((a) => (
-            <div
-              key={a.id}
-              className="p-4 bg-white shadow rounded-xl border border-gray-100 hover:shadow-md transition"
-            >
-              <div className="font-semibold text-gray-800 text-lg">{a.name}</div>
-              <div className="text-sm text-gray-500 mt-1">{a.email}</div>
-
-              <div className="mt-3">
-                <p className="text-xs text-gray-400 uppercase mb-1">Skills</p>
-                <div className="flex flex-wrap gap-2">
-                  {a.skills.map((s, i) => (
-                    <span key={i} className="px-2 py-1 bg-gray-100 rounded-md text-xs text-gray-600">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-3">
-                <p className="text-xs text-gray-400 uppercase mb-1">Score</p>
-                <div className="w-full bg-gray-100 rounded-full h-2.5 mb-2">
-                  <div
-                    className={`h-2.5 rounded-full ${a.score > 75 ? "bg-green-500" : a.score > 50 ? "bg-yellow-500" : "bg-red-500"}`}
-                    style={{ width: `${a.score}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-medium text-gray-700">{a.score}%</span>
-              </div>
-
-              <p className="text-xs text-gray-500 mt-2 italic">{a.summary}</p>
-            </div>
-          ))}
+      {message && (
+        <div className="flex items-center gap-2 mt-4 text-green-600">
+          <CheckCircle2 size={18} />
+          <span>{message}</span>
         </div>
-      ) : (
-        <div className="mt-10 text-center text-gray-500 italic">
-          Upload a CSV to view ranked applicants.
+      )}
+
+      {/* Results Section */}
+      {results.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold mb-4 text-gray-800">
+            Ranked Applicants
+          </h3>
+
+          <div className="space-y-3">
+            {results.map((a, i) => (
+              <div
+                key={a.id}
+                className="border rounded-lg p-4 bg-gray-50 flex items-center justify-between shadow-sm"
+              >
+                <div>
+                  <h4 className="font-medium text-gray-900">
+                    {i + 1}. {a.name}
+                  </h4>
+                  <p className="text-sm text-gray-600">{a.email}</p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    <strong>Skills:</strong> {a.skills.join(", ")}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="font-semibold text-blue-600">
+                    Score: {a.score.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-500">{a.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
