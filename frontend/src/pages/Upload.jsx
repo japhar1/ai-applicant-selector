@@ -15,6 +15,8 @@ const Upload = ({ onUploadSuccess }) => {
     setMessage("");
   };
 
+  console.log("API Base URL:", BASE_URL);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
